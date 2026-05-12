@@ -1,0 +1,57 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+conda_env/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local environment and secrets
+.env
+.env.*
+token*
+credentials*
+secrets*
+
+# Datasets and private data
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Generated features, outputs, and logs
+outputs/
+results/
+runs/
+wandb/
+logs/
+features/*.csv
+features/**/*.csv
+!features/deferred/
+!features/deferred/*.csv
+
+# Model weights, checkpoints, and caches
+models/
+checkpoints/
+hf_cache/
+modelscope_cache/
+.cache/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.gguf

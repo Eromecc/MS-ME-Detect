@@ -1,0 +1,16 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+jieba
+tqdm
+joblib
+transformers
+torch
+scipy
+xgboost
+sentence-transformers
+accelerate
+bitsandbytes
+
