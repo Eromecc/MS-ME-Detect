@@ -14,3 +14,26 @@ These commands document prior experiment stages. They are not executed by the or
 | Transition smoke            | `python scripts/run_transition_profile_experiment.py`                                                                                                                                                                                                                                                                                                                                         | features_transition/, results_transition/                     | Low to Medium  | Only if token loss cache missing                 | Use max_rows for smoke tests.                                               |
 | Transition fullscale 1.5B   | `python scripts/run_transition_fullscale_optimized.py --model_name qwen25_1_5b --resume --seed 42`                                                                                                                                                                                                                                                                                            | results_transition/fullscale_1_5b_optimized/                  | High           | Yes if cache missing                             | Safe with resume and fixed output dir; avoid overwriting completed results. |
 | Transition targeted 7B      | `python scripts/run_transition_7b_targeted.py --model_name qwen25_7b --train_sources m4 combined_strict leave_out_ghostbuster --test_sets all_samples m4_test ghostbuster_test hc3_plus_test --resume --seed 42 --max_length 256`                                                                                                                                                             | results_transition/qwen25_7b_targeted/                        | High           | Yes if cache missing                             | Safe with resume; does not run 14B.                                         |
+## Deep DMD Cross-Source Matrix
+
+Purpose: evaluate Deep DMD under public source-to-source transfer and compare against transition/reference results.
+
+```bash
+python scripts/run_deep_dmd_cross_source_matrix.py \
+  --train_sources ghostbuster m4 hc3_plus combined_strict leave_out_ghostbuster leave_out_m4 leave_out_hc3_plus \
+  --test_sets ghostbuster_test m4_test hc3_plus_test all_samples \
+  --models qwen25_1_5b qwen25_7b \
+  --reuse_existing_checkpoints \
+  --run_missing_only \
+  --run_eval \
+  --run_plots \
+  --seed 42
+```
+
+Expected outputs: `results_deep_dmd/cross_source_matrix/`, `checkpoints_deep_dmd/cross_source_matrix/` for targeted missing checkpoints, and `features_deep_dmd/cross_source_matrix/` for extracted Deep DMD features.
+
+Estimated cost: moderate if missing checkpoints must be trained; low if checkpoints already exist.
+
+Large model inference: no. It reuses token-loss caches and does not run Qwen probability or scale-response.
+
+Safe to rerun: yes, with `--reuse_existing_checkpoints --run_missing_only`; it writes only the cross-source Deep DMD output directories.

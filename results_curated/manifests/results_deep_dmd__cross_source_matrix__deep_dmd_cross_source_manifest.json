@@ -1,0 +1,89 @@
+{
+  "created_at": "2026-05-15T02:10:08.839115+00:00",
+  "args": {
+    "source_splits": "data/source_splits",
+    "external_test": "data/test/all_samples_prepared.csv",
+    "full_features": "features_by_dataset/combined_public_full_allfeatures/all_features.csv",
+    "external_features": "features_external/all_samples_full_allfeatures/all_features.csv",
+    "train_sources": [
+      "ghostbuster",
+      "m4",
+      "hc3_plus",
+      "combined_strict",
+      "leave_out_ghostbuster",
+      "leave_out_m4",
+      "leave_out_hc3_plus"
+    ],
+    "test_sets": [
+      "ghostbuster_test",
+      "m4_test",
+      "hc3_plus_test",
+      "all_samples"
+    ],
+    "models": [
+      "qwen25_1_5b",
+      "qwen25_7b"
+    ],
+    "output_dir": "results_deep_dmd/cross_source_matrix",
+    "checkpoint_dir": "checkpoints_deep_dmd/cross_source_matrix",
+    "feature_dir": "features_deep_dmd/cross_source_matrix",
+    "reuse_existing_checkpoints": true,
+    "run_missing_only": true,
+    "run_eval": true,
+    "run_plots": true,
+    "seed": 42,
+    "device": "auto",
+    "max_rows_per_split": null,
+    "max_seq_len": 256,
+    "latent_dim": 8,
+    "hidden_dim": 64,
+    "epochs": 12,
+    "batch_size": 32,
+    "patience": 4,
+    "loss_config": "C",
+    "dry_run": false
+  },
+  "reused_full_sweep_sources": [
+    "combined_strict",
+    "leave_out_ghostbuster",
+    "m4"
+  ],
+  "targeted_trained_sources": [
+    "ghostbuster (checkpoint reused)",
+    "hc3_plus (checkpoint reused)",
+    "leave_out_m4 (checkpoint reused)",
+    "leave_out_hc3_plus (checkpoint reused)"
+  ],
+  "skipped_sources": [],
+  "errors": [],
+  "warnings": [
+    {
+      "train_source": "ghostbuster",
+      "model_name": "qwen25_1_5b",
+      "status": "completed",
+      "reused_checkpoint": true,
+      "warning": "transition features missing for this train source; skipped full_plus_transition_plus_deep_dmd"
+    },
+    {
+      "train_source": "hc3_plus",
+      "model_name": "qwen25_1_5b",
+      "status": "completed",
+      "reused_checkpoint": true,
+      "warning": "transition features missing for this train source; skipped full_plus_transition_plus_deep_dmd"
+    },
+    {
+      "train_source": "leave_out_m4",
+      "model_name": "qwen25_1_5b",
+      "status": "completed",
+      "reused_checkpoint": true,
+      "warning": "transition features missing for this train source; skipped full_plus_transition_plus_deep_dmd"
+    },
+    {
+      "train_source": "leave_out_hc3_plus",
+      "model_name": "qwen25_1_5b",
+      "status": "completed",
+      "reused_checkpoint": true,
+      "warning": "transition features missing for this train source; skipped full_plus_transition_plus_deep_dmd"
+    }
+  ]
+}

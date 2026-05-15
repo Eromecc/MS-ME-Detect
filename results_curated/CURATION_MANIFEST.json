@@ -58,5 +58,11 @@
     "results_curated/figures/results_presentation__FIGURE_INDEX.md",
     "results_curated/figures/results_presentation__SLIDE_GUIDE.md"
   ],
-  "skipped": []
+  "skipped": [],
+  "deep_dmd_cross_source_added": {
+    "tables_dir": "results_curated/tables",
+    "figures_prefix": "results_curated/figures/cross_source_",
+    "source_dir": "results_deep_dmd/cross_source_matrix",
+    "note": "Curated Deep DMD cross-source matrix tables, report, probe summary, and heatmaps. Full result directories/checkpoints remain ignored."
+  }
 }

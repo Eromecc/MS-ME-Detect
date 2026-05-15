@@ -285,3 +285,38 @@ Interpretation:
 - The final selected main model remains `leave_out_ghostbuster + full_plus_1_5b_and_7b_transition`.
 
 Recommendation: present Deep DMD as a rigorous controlled secondary / negative experiment. It verifies that a learnable Koopman encoder was implemented and evaluated, but the simpler transition-state profiling remains the main method.
+## Deep DMD Cross-Source Matrix
+
+Purpose: test whether Deep DMD is weak only on `all_samples`, or also weaker under public source-to-source transfer.
+
+Source: `results_deep_dmd/cross_source_matrix/` and curated copies in `results_curated/tables/`.
+
+Run status:
+
+| Item | Value |
+|---|---|
+| reused full-sweep sources | combined_strict, leave_out_ghostbuster, m4 |
+| targeted checkpoint sources | ghostbuster (checkpoint reused), hc3_plus (checkpoint reused), leave_out_m4 (checkpoint reused), leave_out_hc3_plus (checkpoint reused) |
+| skipped sources | none |
+| errors | 0 |
+
+Mean Deep DMD delta versus transition/reference:
+
+| subset | mean_delta_auroc | mean_delta_auprc | mean_delta_tpr_at_fpr5 |
+| --- | --- | --- | --- |
+| public tests | 0.0036 | 0.0024 | 0.0041 |
+| all_samples | 0.0588 | 0.0335 | 0.0029 |
+
+Generalization gap summary:
+
+| train_source | method | same_source_auroc | mean_public_cross_source_auroc | all_samples_auroc | same_to_all_gap | public_cross_to_all_gap |
+| --- | --- | --- | --- | --- | --- | --- |
+| combined_strict | deep_dmd_best_available |  | 0.9795 | 0.6621 |  | 0.3174 |
+| ghostbuster | deep_dmd_best_available | 0.9975 | 0.8895 | 0.5079 | 0.4896 | 0.3816 |
+| hc3_plus | deep_dmd_best_available | 0.9659 | 0.9254 | 0.5932 | 0.3727 | 0.3322 |
+| leave_out_ghostbuster | deep_dmd_best_available |  | 0.9557 | 0.6894 |  | 0.2662 |
+| leave_out_hc3_plus | deep_dmd_best_available |  | 0.9768 | 0.6134 |  | 0.3634 |
+| leave_out_m4 | deep_dmd_best_available |  | 0.9455 | 0.4843 |  | 0.4611 |
+| m4 | deep_dmd_best_available | 0.9949 | 0.9264 | 0.6708 | 0.3242 | 0.2556 |
+
+Interpretation: Deep DMD is strong on many public same-source and public cross-source tests, but it does not clearly reduce the `all_samples` target shift. The earlier conclusion is refined: Deep DMD should not be described as simply useless; it is complementary, but transition-state profiling remains the selected main method.

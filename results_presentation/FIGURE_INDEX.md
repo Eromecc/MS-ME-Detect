@@ -91,3 +91,14 @@ Figure: `figures_clean/deep_dmd_negative_result_summary.png`
 Source: `results_deep_dmd/full_sweep_1_5b_7b/deep_dmd_vs_previous_best.csv` and manifest.
 Takeaway: Deep DMD was implemented as learnable lifting plus Koopman dynamics, but it is a controlled secondary / negative result rather than the final method.
 Suggested slide: Deep DMD control experiment.
+## Deep DMD Cross-Source Matrix
+
+Figure: `figures_clean/cross_source_deep_dmd_auroc_heatmap.png`
+Source: `results_deep_dmd/cross_source_matrix/deep_dmd_best_available_matrix.csv`
+Takeaway: Deep DMD is strong on many public source-to-source tests, but all_samples remains a shifted target.
+Suggested slide: Deep DMD cross-source validation.
+
+Figure: `figures_clean/cross_source_deep_dmd_vs_transition_delta_auroc_heatmap.png`
+Source: `results_deep_dmd/cross_source_matrix/deep_dmd_vs_transition_delta.csv`
+Takeaway: Deep DMD provides small public-transfer deltas, but does not change the selected main method.
+Suggested slide: Deep DMD versus transition.

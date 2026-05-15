@@ -39,3 +39,14 @@ Slide 8:
 Title: Deep DMD is a rigorous negative / secondary experiment
 Figure: deep_dmd_negative_result_summary.png
 Takeaway: Best fusion uses alpha=1.00, so the apparent fusion gain mainly selects transition score rather than a stable Deep DMD improvement.
+
+
+Slide 9:
+Title: Deep DMD transfers on public sources but not enough for all_samples
+Figure: cross_source_deep_dmd_auroc_heatmap.png
+Takeaway: Deep DMD captures public benchmark dynamics but does not close the external target shift.
+
+Slide 10:
+Title: Transition remains the selected main method
+Figure: cross_source_deep_dmd_vs_transition_delta_auroc_heatmap.png
+Takeaway: Deep DMD is complementary, but transition-state profiling remains more robust under current validation.

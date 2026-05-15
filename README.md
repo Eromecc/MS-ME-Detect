@@ -2,6 +2,45 @@
 
 Multi-Scale Multi-Evidence Detection of LLM-generated Text.
 
+## Current Research Snapshot
+
+This repository now includes the code and curated summaries for the full experimental line:
+
+- basic baseline
+- cleaned `full_allfeatures`
+- feature ablation and threshold/tuning experiments
+- source-to-source generalization matrix
+- all_samples diagnosis and M4-targeted training
+- transition-state profiling with Qwen2.5-1.5B and 7B token-loss trajectories
+- DMD-lite / Koopman-inspired spectral profiling
+- full Deep DMD encoder sweep and Deep DMD cross-source matrix
+
+The current selected main model is:
+
+`leave_out_ghostbuster + full_plus_1_5b_and_7b_transition`
+
+External `all_samples` result:
+
+| Metric | Value |
+|---|---:|
+| AUROC | 0.6951 |
+| AUPRC | 0.6592 |
+| F1 | 0.6799 |
+| TPR@FPR=1% | 0.0200 |
+| TPR@FPR=5% | 0.0933 |
+| ECE | 0.1488 |
+| Brier | 0.2459 |
+
+The strongest conclusion is not that Deep DMD is useless. Deep DMD has public-source transfer signal, but it does not solve the stronger `all_samples` shift. Transition-state profiling remains the selected main method because it is more robust under the current non-leaky validation.
+
+Start here for a compact research summary:
+
+- [docs/METHOD_FEATURES_AND_RESULTS.md](docs/METHOD_FEATURES_AND_RESULTS.md)
+- [docs/RESULTS_SUMMARY.md](docs/RESULTS_SUMMARY.md)
+- [docs/TRANSITION_STATE_PROFILING_SUMMARY.md](docs/TRANSITION_STATE_PROFILING_SUMMARY.md)
+- [results_curated/tables/](results_curated/tables/)
+- [results_presentation/figures_clean/](results_presentation/figures_clean/)
+
 MS-ME-Detect is a Python project for AI-generated and AI-polished text detection, with a current focus on Chinese and Chinese-English mixed text. It is not an LLM-as-judge detector. Instead, it extracts handcrafted and local language-model features, then trains conventional classifiers for the final decision.
 
 This repository does not include private datasets, model weights, Hugging Face or ModelScope caches, training outputs, or logs. You must prepare your own dataset and local model files before running the full pipeline.
@@ -14,14 +53,21 @@ The current released feature groups are:
 - Structural features
 - Rule-based perturbation features
 - Qwen2.5-1.5B probability features
+- Qwen2.5-7B/14B probability summary features for full experiments
+- scale-response profiling across Qwen scales
+- transition-state profiling from token-level loss trajectories
+- DMD-lite and Deep DMD experimental modules
 
-The codebase also includes optional multi-scale probability, scale-response, and binoculars-style modules for extended experiments.
+The codebase also includes optional multi-scale probability, scale-response, binoculars-style modules, Koopman-inspired DMD-lite features, and a Deep DMD encoder for controlled experiments.
 
 ## Method Overview
 
 - Statistical burstiness: sentence length variation, punctuation ratios, type-token ratio, repetition, compression, and Zipf deviation.
 - Multi-scale Qwen2.5 probability features: Base models compute PPL and token-level negative log-likelihood distributions.
 - Multi-scale probability response features: slopes, gaps, ratios, response areas, and curvature across Qwen2.5 model scales.
+- Transition-state profiling: token-level loss sequences are mapped into abstract loss states with train-only bins; the model uses transition matrices, entropy, up/down/self transitions, burst density, run lengths, and spectral gap features.
+- DMD-lite spectral profiling: per-text hand-built observables from loss trajectories are used to estimate a small linear dynamics operator and spectral summaries.
+- Deep DMD encoder: learnable lifting `g_theta(x_t)` and Koopman operator `K` trained with multi-step prediction, reconstruction, classification, and stability losses. This is implemented and evaluated, but not selected as the main method.
 - Binoculars-inspired contrast: simplified dual-model contrast between observer and performer Base models. This is inspired by the Binoculars idea, not a full reproduction.
 - Structural patterns: template phrase ratios, N-gram repetition, POS ratios, and information-density signals.
 - Optional perturbation stability: rule-based perturbations by default, with optional Qwen2.5 Instruct rewriting.

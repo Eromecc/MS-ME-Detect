@@ -4,7 +4,7 @@ Generated: 2026-05-14T03:18:39.373501+00:00
 
 ## Project Purpose
 
-This project studies LLM-generated text detection. Current experiments focus on probability features, scale-response profiling, cross-source generalization diagnosis, and transition-state profiling from token-level loss sequences.
+This project studies LLM-generated text detection. Current experiments focus on probability features, scale-response profiling, cross-source generalization diagnosis, transition-state profiling from token-level loss sequences, DMD-lite spectral profiling, and a controlled Deep DMD encoder experiment.
 
 ## Directory Guide
 
@@ -34,6 +34,8 @@ This project studies LLM-generated text detection. Current experiments focus on 
 | results_diagnosis/         | all_samples diagnosis and error analysis plots/tables.                                   |
 | results_targeted/          | M4-targeted training result tables and plots.                                            |
 | results_transition/        | Transition-state profiling experiments and plots.                                        |
+| results_deep_dmd/          | Deep DMD full sweep and cross-source matrix outputs; full directory is large and ignored. |
+| results_curated/           | Small GitHub-shareable result tables, manifests, and selected figures.                   |
 | results_presentation/      | Presentation-ready figures and slide guide.                                              |
 | src/                       | Reusable project source code.                                                            |
 | scripts/                   | Experiment and utility scripts.                                                          |
@@ -48,6 +50,7 @@ Recommended:
 - README and small configuration files
 - small CSV summaries that document headline results
 - selected presentation figures from `results_curated/figures/`
+- `results_curated/` and `results_presentation/figures_clean/` for a readable public snapshot
 
 Recommended not to commit:
 - raw datasets and private test data
@@ -75,4 +78,6 @@ Current best external `all_samples` setup:
 
 ## Main Conclusion
 
-Public benchmark in-domain performance is very high, but `all_samples` is a strongly shifted external set. Ghostbuster-trained models show probability reversal on `all_samples`. Scale-response improves external ranking, and full-scale transition-state profiling further improves the best `all_samples` setup. Low-FPR detection remains weak and needs more calibration or training data alignment.
+Public benchmark in-domain performance is very high, but `all_samples` is a strongly shifted external set. Ghostbuster-trained models show probability reversal on `all_samples`. Scale-response improves external ranking, and full-scale transition-state profiling further improves the best `all_samples` setup. Deep DMD was implemented and evaluated with both full sweep and cross-source matrix; it has complementary public-transfer signal but does not clearly reduce the `all_samples` gap. Low-FPR detection remains weak and needs more calibration or training data alignment.
+
+For a detailed reader-facing method and result summary, see `docs/METHOD_FEATURES_AND_RESULTS.md`.
