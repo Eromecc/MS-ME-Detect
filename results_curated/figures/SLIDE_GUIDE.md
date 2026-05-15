@@ -29,13 +29,3 @@ Slide 6:
 Title: M4 is the closest public source, but low-FPR detection remains weak
 Figure: slide08_m4_targeted_variants.png
 Takeaway: M4-only performs best among public-source variants, but detection remains imperfect.
-
-Slide 7:
-Title: Transition remains the selected method after Deep DMD control experiments
-Figure: method_comparison_deep_dmd_transition.png
-Takeaway: Deep DMD was implemented and evaluated, but the selected main model remains leave_out_ghostbuster + full_plus_1_5b_and_7b_transition.
-
-Slide 8:
-Title: Deep DMD is a rigorous negative / secondary experiment
-Figure: deep_dmd_negative_result_summary.png
-Takeaway: Best fusion uses alpha=1.00, so the apparent fusion gain mainly selects transition score rather than a stable Deep DMD improvement.

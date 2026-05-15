@@ -1,106 +1,80 @@
-"""Multi-scale probability response features.
-
-This module derives explainable response features from existing Qwen2.5 Base
-probability feature files. It models how PPL and token-level loss statistics
-change as model scale increases from 1.5B to 7B, 14B, and optionally 32B.
-"""
+"""Build scale-response features from existing multi-scale probability CSVs."""
 
 from __future__ import annotations
 
 import argparse
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+try:
+    from .utils import save_json
+except ImportError:
+    from utils import save_json
+
 EPSILON = 1e-8
 
 SCALES = [
-    {
-        "label": "1_5b",
-        "index": 0.0,
-        "file": "probability_qwen25_1_5b.csv",
-        "prefixes": ["qwen25_1_5b", "qwen2_5_1_5b"],
-    },
-    {
-        "label": "7b",
-        "index": 1.0,
-        "file": "probability_qwen25_7b.csv",
-        "prefixes": ["qwen25_7b", "qwen2_5_7b"],
-    },
-    {
-        "label": "14b",
-        "index": 2.0,
-        "file": "probability_qwen25_14b.csv",
-        "prefixes": ["qwen25_14b", "qwen2_5_14b"],
-    },
-    {
-        "label": "32b",
-        "index": 3.0,
-        "file": "probability_qwen25_32b.csv",
-        "prefixes": ["qwen25_32b", "qwen2_5_32b"],
-    },
+    {"label": "1_5b", "index": 0.0, "file": "probability_qwen25_1_5b.csv", "prefixes": ["qwen25_1_5b", "qwen2_5_1_5b"]},
+    {"label": "7b", "index": 1.0, "file": "probability_qwen25_7b.csv", "prefixes": ["qwen25_7b", "qwen2_5_7b"]},
+    {"label": "14b", "index": 2.0, "file": "probability_qwen25_14b.csv", "prefixes": ["qwen25_14b", "qwen2_5_14b"]},
+    {"label": "32b", "index": 3.0, "file": "probability_qwen25_32b.csv", "prefixes": ["qwen25_32b", "qwen2_5_32b"]},
 ]
 
-METRICS = ["ppl", "loss_mean", "loss_std"]
-
-
-def safe_divide(a, b):
-    """Elementwise safe division with NaN preservation."""
-    return pd.to_numeric(a, errors="coerce") / (pd.to_numeric(b, errors="coerce") + EPSILON)
-
-
-def safe_slope(v1, v2, scale_gap):
-    """Elementwise slope between two model scales."""
-    return (pd.to_numeric(v2, errors="coerce") - pd.to_numeric(v1, errors="coerce")) / (float(scale_gap) + EPSILON)
-
-
-def response_area(values, scale_indices):
-    """Trapezoidal response area over available non-NaN scale points."""
-    vals = np.asarray(values, dtype=float)
-    idx = np.asarray(scale_indices, dtype=float)
-    mask = np.isfinite(vals) & np.isfinite(idx)
-    if mask.sum() < 2:
-        return np.nan
-    return float(np.trapezoid(vals[mask], idx[mask]))
-
-
-def response_curvature(values):
-    """Mean second-order finite difference over available scale points."""
-    vals = np.asarray(values, dtype=float)
-    indices = np.asarray([s["index"] for s in SCALES[: len(vals)]], dtype=float)
-    mask = np.isfinite(vals) & np.isfinite(indices)
-    if mask.sum() < 3:
-        return np.nan
-    x = indices[mask]
-    y = vals[mask]
-    first = np.gradient(y, x)
-    second = np.gradient(first, x)
-    return float(np.nanmean(second))
+REQUESTED_METRICS = [
+    "ppl",
+    "loss_mean",
+    "loss_std",
+    "loss_cv",
+    "loss_range",
+    "loss_skewness",
+    "loss_kurtosis",
+    "top_10_percent_loss_mean",
+    "bottom_10_percent_loss_mean",
+]
+PAIRWISE_SCALE_PAIRS = [("1_5b", "7b"), ("7b", "14b"), ("14b", "32b")]
 
 
 def warn(message: str) -> None:
     print(f"Warning: {message}")
 
 
+def to_numeric_series(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce")
+
+
+def safe_divide(a, b):
+    return to_numeric_series(a) / (to_numeric_series(b) + EPSILON)
+
+
+def sanitize_numeric_frame(df: pd.DataFrame) -> pd.DataFrame:
+    for col in df.columns:
+        if col == "id":
+            continue
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    numeric_cols = [c for c in df.columns if c != "id"]
+    if numeric_cols:
+        df[numeric_cols] = df[numeric_cols].replace([np.inf, -np.inf], np.nan)
+    return df
+
+
 def find_metric_column(columns: list[str], prefixes: list[str], metric: str) -> str | None:
-    """Find a metric column for a model prefix, tolerating minor naming shifts."""
-    candidates = []
     for prefix in prefixes:
-        candidates.append(f"{prefix}_{metric}")
-    for candidate in candidates:
+        candidate = f"{prefix}_{metric}"
         if candidate in columns:
             return candidate
     suffix = f"_{metric}"
-    matches = [c for c in columns if c.endswith(suffix) and any(c.startswith(p) for p in prefixes)]
+    matches = [c for c in columns if c.endswith(suffix) and any(c.startswith(prefix) for prefix in prefixes)]
     return matches[0] if matches else None
 
 
-def load_probability_features(feature_dir: str | Path) -> tuple[pd.DataFrame, list[dict]]:
-    """Load and merge available probability files by id."""
+def load_probability_features(feature_dir: str | Path) -> tuple[pd.DataFrame, list[dict], list[str]]:
     feature_dir = Path(feature_dir)
     merged: pd.DataFrame | None = None
-    available = []
+    available_scales: list[dict] = []
+    metrics_found: set[str] = set()
     for scale in SCALES:
         path = feature_dir / scale["file"]
         if not path.exists():
@@ -111,98 +85,224 @@ def load_probability_features(feature_dir: str | Path) -> tuple[pd.DataFrame, li
             warn(f"Skipping {path}; no id column found.")
             continue
         frame["id"] = frame["id"].astype(str)
-        columns = frame.columns.tolist()
-        metric_cols = {}
-        for metric in METRICS:
-            col = find_metric_column(columns, scale["prefixes"], metric)
-            if col is None:
-                warn(f"{path.name} has no {metric} column for prefixes {scale['prefixes']}.")
-            metric_cols[metric] = col
-        keep_cols = ["id"] + [c for c in metric_cols.values() if c is not None]
-        renamed = frame[keep_cols].copy()
-        for metric, col in metric_cols.items():
-            if col is not None:
-                renamed = renamed.rename(columns={col: f"{scale['label']}__{metric}"})
+        keep_cols = ["id"]
+        rename_map = {}
+        for metric in REQUESTED_METRICS:
+            column = find_metric_column(frame.columns.tolist(), scale["prefixes"], metric)
+            if column is None:
+                warn(f"{path.name} is missing metric '{metric}'.")
+                continue
+            keep_cols.append(column)
+            rename_map[column] = f"{scale['label']}__{metric}"
+            metrics_found.add(metric)
+        renamed = frame[keep_cols].rename(columns=rename_map).copy()
+        renamed = sanitize_numeric_frame(renamed)
         merged = renamed if merged is None else merged.merge(renamed, on="id", how="outer")
-        available.append(scale)
+        available_scales.append(scale)
     if merged is None:
         warn("No probability feature files were available; writing an empty id-only feature file.")
-        return pd.DataFrame({"id": pd.Series(dtype=str)}), []
-    return merged, available
+        return pd.DataFrame({"id": pd.Series(dtype=str)}), [], []
+    return merged, available_scales, [metric for metric in REQUESTED_METRICS if metric in metrics_found]
 
 
-def add_pair_features(out: pd.DataFrame, merged: pd.DataFrame, left: dict, right: dict) -> None:
-    gap = right["index"] - left["index"]
-    l_label = left["label"]
-    r_label = right["label"]
-    for metric in METRICS:
-        l_col = f"{l_label}__{metric}"
-        r_col = f"{r_label}__{metric}"
-        if l_col not in merged.columns or r_col not in merged.columns:
+def pairwise_directional_change(left: pd.Series, right: pd.Series) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+    delta = to_numeric_series(right) - to_numeric_series(left)
+    slope = delta
+    ratio = safe_divide(right, left)
+    abs_delta = delta.abs()
+    rel_delta = safe_divide(delta, left.abs())
+    return slope, ratio, abs_delta, rel_delta
+
+
+def row_valid_points(row: pd.Series, scale_lookup: dict[str, dict], metric: str) -> tuple[np.ndarray, np.ndarray]:
+    xs = []
+    ys = []
+    for scale in SCALES:
+        col = f"{scale['label']}__{metric}"
+        if col not in row.index:
             continue
-        out[f"scale_{metric}_slope_{l_label}_to_{r_label}"] = safe_slope(merged[l_col], merged[r_col], gap)
-        out[f"scale_{metric}_ratio_{l_label}_{r_label}"] = safe_divide(merged[l_col], merged[r_col])
+        value = row[col]
+        if pd.notna(value) and np.isfinite(value):
+            xs.append(scale_lookup[scale["label"]]["index"])
+            ys.append(float(value))
+    return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
 
 
-def add_gap_features(out: pd.DataFrame, merged: pd.DataFrame, small: dict, large: dict) -> None:
-    s_label = small["label"]
-    l_label = large["label"]
-    for metric in METRICS:
-        s_col = f"{s_label}__{metric}"
-        l_col = f"{l_label}__{metric}"
-        if s_col in merged.columns and l_col in merged.columns:
-            out[f"scale_{metric}_gap_{s_label}_{l_label}"] = pd.to_numeric(merged[s_col], errors="coerce") - pd.to_numeric(merged[l_col], errors="coerce")
+def linear_response_stats(xs: np.ndarray, ys: np.ndarray) -> tuple[float, float, float]:
+    if xs.size < 2:
+        return np.nan, np.nan, np.nan
+    slope, intercept = np.polyfit(xs, ys, deg=1)
+    pred = slope * xs + intercept
+    ss_res = float(np.sum((ys - pred) ** 2))
+    ss_tot = float(np.sum((ys - np.mean(ys)) ** 2))
+    r2 = np.nan if ss_tot <= EPSILON else 1.0 - (ss_res / (ss_tot + EPSILON))
+    return float(slope), float(intercept), float(r2)
 
 
-def add_response_shape_features(out: pd.DataFrame, merged: pd.DataFrame, available: list[dict]) -> None:
-    scale_indices = [s["index"] for s in available]
-    for metric in METRICS:
-        cols = [f"{s['label']}__{metric}" for s in available]
-        existing = [c for c in cols if c in merged.columns]
-        if len(existing) < 2:
-            out[f"scale_{metric}_response_area"] = np.nan
-            out[f"scale_{metric}_response_curvature"] = np.nan
-            continue
-        idx = [scale_indices[cols.index(c)] for c in existing]
-        values = merged[existing].apply(pd.to_numeric, errors="coerce")
-        out[f"scale_{metric}_response_area"] = values.apply(lambda row: response_area(row.to_numpy(), idx), axis=1)
-        out[f"scale_{metric}_response_curvature"] = values.apply(lambda row: response_curvature(row.to_numpy()), axis=1)
+def response_area(xs: np.ndarray, ys: np.ndarray) -> float:
+    if xs.size < 2:
+        return np.nan
+    if hasattr(np, "trapezoid"):
+        return float(np.trapezoid(ys, xs))
+    return float(np.sum((ys[1:] + ys[:-1]) * (xs[1:] - xs[:-1]) * 0.5))
 
 
-def add_saturation_features(out: pd.DataFrame, merged: pd.DataFrame) -> None:
-    for metric in METRICS:
-        c14 = f"14b__{metric}"
-        c32 = f"32b__{metric}"
-        if c14 in merged.columns and c32 in merged.columns:
-            out[f"scale_{metric}_saturation_14b_32b"] = (
-                pd.to_numeric(merged[c14], errors="coerce") - pd.to_numeric(merged[c32], errors="coerce")
-            ).abs()
+def normalized_area(xs: np.ndarray, ys: np.ndarray) -> float:
+    if xs.size < 2:
+        return np.nan
+    span = xs[-1] - xs[0]
+    if span <= EPSILON:
+        return np.nan
+    return response_area(xs, ys) / (span + EPSILON)
+
+
+def response_curvature(xs: np.ndarray, ys: np.ndarray) -> float:
+    if xs.size < 3:
+        return np.nan
+    first = np.gradient(ys, xs)
+    second = np.gradient(first, xs)
+    return float(np.nanmean(second))
+
+
+def monotonicity_stats(xs: np.ndarray, ys: np.ndarray) -> tuple[float, float, float]:
+    if ys.size < 2:
+        return np.nan, np.nan, np.nan
+    delta = np.diff(ys)
+    nonzero = delta[np.abs(delta) > EPSILON]
+    decrease_ratio = float(np.mean(delta < 0)) if delta.size else np.nan
+    increase_ratio = float(np.mean(delta > 0)) if delta.size else np.nan
+    if nonzero.size < 2:
+        direction_changes = 0.0 if nonzero.size == 1 else np.nan
+    else:
+        direction_changes = float(np.sum(np.sign(nonzero[1:]) != np.sign(nonzero[:-1])))
+    return decrease_ratio, increase_ratio, direction_changes
+
+
+def early_late_saturation(row: pd.Series, metric: str) -> tuple[float, float, float, float]:
+    c1 = row.get(f"1_5b__{metric}")
+    c7 = row.get(f"7b__{metric}")
+    c14 = row.get(f"14b__{metric}")
+    c32 = row.get(f"32b__{metric}")
+    early_gain = np.nan if pd.isna(c1) or pd.isna(c7) else float(c1) - float(c7)
+    late_gain = np.nan if pd.isna(c14) or pd.isna(c32) else float(c14) - float(c32)
+    saturation = np.nan if np.isnan(late_gain) else abs(float(late_gain))
+    saturation_ratio = np.nan if np.isnan(saturation) else float(saturation / (abs(float(early_gain)) + EPSILON))
+    return early_gain, late_gain, saturation, saturation_ratio
+
+
+def add_pairwise_response_features(out: pd.DataFrame, merged: pd.DataFrame, metrics_used: list[str]) -> None:
+    by_label = {scale["label"]: scale for scale in SCALES}
+    for left_label, right_label in PAIRWISE_SCALE_PAIRS:
+        left_scale = by_label[left_label]
+        right_scale = by_label[right_label]
+        gap = right_scale["index"] - left_scale["index"]
+        for metric in metrics_used:
+            left_col = f"{left_label}__{metric}"
+            right_col = f"{right_label}__{metric}"
+            if left_col not in merged.columns or right_col not in merged.columns:
+                continue
+            slope, ratio, abs_delta, rel_delta = pairwise_directional_change(merged[left_col], merged[right_col])
+            out[f"scale_{metric}_slope_{left_label}_to_{right_label}"] = slope / (gap + EPSILON)
+            out[f"scale_{metric}_ratio_{left_label}_to_{right_label}"] = ratio
+            out[f"scale_{metric}_abs_delta_{left_label}_to_{right_label}"] = abs_delta
+            out[f"scale_{metric}_rel_delta_{left_label}_to_{right_label}"] = rel_delta
+
+
+def add_global_response_features(out: pd.DataFrame, merged: pd.DataFrame, metrics_used: list[str]) -> dict[str, pd.Series]:
+    scale_lookup = {scale["label"]: scale for scale in SCALES}
+    global_slopes: dict[str, pd.Series] = {}
+    for metric in metrics_used:
+        stats = merged.apply(lambda row: row_valid_points(row, scale_lookup, metric), axis=1)
+        out[f"scale_{metric}_global_slope"] = stats.apply(lambda item: linear_response_stats(item[0], item[1])[0])
+        out[f"scale_{metric}_global_intercept"] = stats.apply(lambda item: linear_response_stats(item[0], item[1])[1])
+        out[f"scale_{metric}_global_r2"] = stats.apply(lambda item: linear_response_stats(item[0], item[1])[2])
+        out[f"scale_{metric}_response_area"] = stats.apply(lambda item: response_area(item[0], item[1]))
+        out[f"scale_{metric}_normalized_area"] = stats.apply(lambda item: normalized_area(item[0], item[1]))
+        out[f"scale_{metric}_response_curvature"] = stats.apply(lambda item: response_curvature(item[0], item[1]))
+        out[f"scale_{metric}_response_variance"] = stats.apply(lambda item: float(np.var(item[1])) if item[1].size else np.nan)
+        out[f"scale_{metric}_response_range"] = stats.apply(lambda item: float(np.max(item[1]) - np.min(item[1])) if item[1].size else np.nan)
+        out[f"scale_{metric}_min_scale_index"] = stats.apply(lambda item: float(item[0][int(np.argmin(item[1]))]) if item[1].size else np.nan)
+        out[f"scale_{metric}_max_scale_index"] = stats.apply(lambda item: float(item[0][int(np.argmax(item[1]))]) if item[1].size else np.nan)
+        global_slopes[metric] = out[f"scale_{metric}_global_slope"]
+    return global_slopes
+
+
+def add_monotonicity_saturation_features(out: pd.DataFrame, merged: pd.DataFrame, metrics_used: list[str]) -> None:
+    scale_lookup = {scale["label"]: scale for scale in SCALES}
+    for metric in metrics_used:
+        stats = merged.apply(lambda row: row_valid_points(row, scale_lookup, metric), axis=1)
+        out[f"scale_{metric}_monotonic_decrease_ratio"] = stats.apply(lambda item: monotonicity_stats(item[0], item[1])[0])
+        out[f"scale_{metric}_monotonic_increase_ratio"] = stats.apply(lambda item: monotonicity_stats(item[0], item[1])[1])
+        out[f"scale_{metric}_num_direction_changes"] = stats.apply(lambda item: monotonicity_stats(item[0], item[1])[2])
+        saturation = merged.apply(lambda row: early_late_saturation(row, metric), axis=1)
+        out[f"scale_{metric}_early_gain_1_5b_7b"] = saturation.apply(lambda item: item[0])
+        out[f"scale_{metric}_late_gain_14b_32b"] = saturation.apply(lambda item: item[1])
+        out[f"scale_{metric}_saturation_14b_32b"] = saturation.apply(lambda item: item[2])
+        out[f"scale_{metric}_saturation_ratio_14b_32b"] = saturation.apply(lambda item: item[3])
+
+
+def add_cross_metric_features(out: pd.DataFrame, merged: pd.DataFrame, global_slopes: dict[str, pd.Series]) -> None:
+    if "ppl" in global_slopes and "loss_mean" in global_slopes:
+        out["scale_ppl_loss_mean_global_slope_ratio"] = safe_divide(global_slopes["ppl"], global_slopes["loss_mean"])
+    if "loss_std" in global_slopes and "loss_mean" in global_slopes:
+        out["scale_loss_std_loss_mean_global_slope_ratio"] = safe_divide(global_slopes["loss_std"], global_slopes["loss_mean"])
+
+    gap_scale_points = []
+    for scale in SCALES:
+        top_col = f"{scale['label']}__top_10_percent_loss_mean"
+        bottom_col = f"{scale['label']}__bottom_10_percent_loss_mean"
+        if top_col in merged.columns and bottom_col in merged.columns:
+            out[f"scale_top_bottom_loss_gap_{scale['label']}"] = to_numeric_series(merged[top_col]) - to_numeric_series(merged[bottom_col])
+            gap_scale_points.append(scale["label"])
+    if not gap_scale_points:
+        return
+
+    scale_lookup = {scale["label"]: scale for scale in SCALES}
+    gap_cols = [f"scale_top_bottom_loss_gap_{label}" for label in gap_scale_points if f"scale_top_bottom_loss_gap_{label}" in out.columns]
+    if len(gap_cols) < 2:
+        out["scale_top_bottom_loss_gap_global_slope"] = np.nan
+        return
+
+    def top_bottom_slope(row: pd.Series) -> float:
+        xs = []
+        ys = []
+        for label in gap_scale_points:
+            col = f"scale_top_bottom_loss_gap_{label}"
+            value = row.get(col)
+            if pd.notna(value) and np.isfinite(value):
+                xs.append(scale_lookup[label]["index"])
+                ys.append(float(value))
+        xs_arr = np.asarray(xs, dtype=float)
+        ys_arr = np.asarray(ys, dtype=float)
+        return linear_response_stats(xs_arr, ys_arr)[0]
+
+    out["scale_top_bottom_loss_gap_global_slope"] = out.apply(top_bottom_slope, axis=1)
 
 
 def build_scale_response_features(feature_dir: str | Path, output: str | Path) -> pd.DataFrame:
-    merged, available = load_probability_features(feature_dir)
+    merged, available_scales, metrics_used = load_probability_features(feature_dir)
     out = pd.DataFrame({"id": merged["id"].astype(str)}) if "id" in merged.columns else pd.DataFrame({"id": pd.Series(dtype=str)})
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
+        add_pairwise_response_features(out, merged, metrics_used)
+        global_slopes = add_global_response_features(out, merged, metrics_used)
+        add_monotonicity_saturation_features(out, merged, metrics_used)
+        add_cross_metric_features(out, merged, global_slopes)
+    out = sanitize_numeric_frame(out)
 
-    by_label = {s["label"]: s for s in available}
-    for left_label, right_label in [("1_5b", "7b"), ("7b", "14b"), ("14b", "32b")]:
-        if left_label in by_label and right_label in by_label:
-            add_pair_features(out, merged, by_label[left_label], by_label[right_label])
-
-    if "1_5b" in by_label and "14b" in by_label:
-        add_gap_features(out, merged, by_label["1_5b"], by_label["14b"])
-    if "1_5b" in by_label and "32b" in by_label:
-        add_gap_features(out, merged, by_label["1_5b"], by_label["32b"])
-
-    add_response_shape_features(out, merged, available)
-    if "14b" in by_label and "32b" in by_label:
-        add_saturation_features(out, merged)
-
-    for col in out.columns:
-        if col != "id":
-            out[col] = pd.to_numeric(out[col], errors="coerce")
-    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(output, index=False)
-    print(f"Saved scale response features: {output} ({len(out)} rows, {len(out.columns) - 1} features)")
+    manifest = {
+        "available_scales": [scale["label"] for scale in available_scales],
+        "metrics_used": metrics_used,
+        "feature_count": int(len(out.columns) - 1),
+        "feature_names": [col for col in out.columns if col != "id"],
+    }
+    save_json(manifest, output.with_name("scale_response_manifest.json"))
+    print(f"Saved scale response features: {output}")
+    print(f"Final rows: {len(out)}")
+    print(f"Final feature count: {len(out.columns) - 1}")
     return out
 
 

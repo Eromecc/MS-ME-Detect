@@ -42,10 +42,18 @@ features/*.csv
 features/**/*.csv
 !features/deferred/
 !features/deferred/*.csv
+features_by_dataset/
+features_external/
+features_source_matrix/
+features_token_loss/
+features_transition/
+features_koopman/
+features_deep_dmd/
 
 # Model weights, checkpoints, and caches
 models/
 checkpoints/
+checkpoints_*/
 hf_cache/
 modelscope_cache/
 .cache/
@@ -55,3 +63,26 @@ modelscope_cache/
 *.bin
 *.safetensors
 *.gguf
+
+# Large experiment outputs. Keep curated/presentation summaries commit-ready.
+results_ablation/
+results_by_dataset/
+results_deep_dmd/
+results_diagnosis/
+results_external/
+results_koopman/
+results_optimized/
+results_source_matrix/
+results_targeted/
+results_transition/
+results_curated/
+!results_curated/
+!results_curated/**
+results_presentation/
+!results_presentation/
+!results_presentation/**
+
+# Inventory docs are small and useful for reviewers.
+project_inventory/
+!project_inventory/
+!project_inventory/**

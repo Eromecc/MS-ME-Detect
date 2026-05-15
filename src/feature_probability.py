@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import argparse
 import gc
+import gzip
+import hashlib
+import json
 import math
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -127,12 +131,12 @@ def empty_feature_row(prefix: str) -> dict[str, float]:
     return {f"{prefix}_{name}": np.nan for name in names}
 
 
-def token_loss_features(text: str, tokenizer, model, max_length: int = 1024, prefix: str = "model") -> dict[str, float]:
+def token_loss_sequence(text: str, tokenizer, model, max_length: int = 1024) -> np.ndarray:
     import torch
     import torch.nn.functional as F
 
     if not str(text).strip():
-        return empty_feature_row(prefix)
+        return np.asarray([], dtype=float)
     device = next(model.parameters()).device
     encoded = tokenizer(str(text), return_tensors="pt", truncation=True, max_length=max_length)
     input_ids = encoded["input_ids"].to(device)
@@ -140,13 +144,16 @@ def token_loss_features(text: str, tokenizer, model, max_length: int = 1024, pre
     if attention_mask is not None:
         attention_mask = attention_mask.to(device)
     if input_ids.shape[1] < 2:
-        return empty_feature_row(prefix)
+        return np.asarray([], dtype=float)
     with torch.no_grad():
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         logits = outputs.logits[:, :-1, :].contiguous()
         labels = input_ids[:, 1:].contiguous()
         losses = F.cross_entropy(logits.view(-1, logits.size(-1)), labels.view(-1), reduction="none")
-    vals = losses.detach().float().cpu().numpy()
+    return losses.detach().float().cpu().numpy()
+
+
+def token_loss_features_from_values(vals: np.ndarray, prefix: str = "model") -> dict[str, float]:
     if vals.size == 0:
         return empty_feature_row(prefix)
     vals_sorted = np.sort(vals)
@@ -169,6 +176,66 @@ def token_loss_features(text: str, tokenizer, model, max_length: int = 1024, pre
     }
 
 
+def token_loss_features(text: str, tokenizer, model, max_length: int = 1024, prefix: str = "model") -> dict[str, float]:
+    return token_loss_features_from_values(token_loss_sequence(text, tokenizer, model, max_length=max_length), prefix=prefix)
+
+
+def text_hash(text: str) -> str:
+    return hashlib.sha256(str(text).encode("utf-8", errors="replace")).hexdigest()
+
+
+def token_loss_cache_path(output_dir: str | Path, model_name: str, dataset_name: str) -> Path:
+    return Path(output_dir) / model_name / f"{dataset_name}_token_loss.jsonl.gz"
+
+
+def read_cached_ids(path: Path) -> set[str]:
+    ids: set[str] = set()
+    if not path.exists():
+        return ids
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                try:
+                    item = json.loads(line)
+                    ids.add(str(item.get("id")))
+                except Exception:
+                    continue
+    except Exception:
+        return ids
+    return ids
+
+
+def write_token_loss_manifest(
+    manifest_path: Path,
+    *,
+    model_name: str,
+    dataset_name: str,
+    cache_path: Path,
+    token_counts: list[int],
+    max_length: int,
+    skipped_ids: list[str],
+    failed_ids: list[str],
+) -> None:
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest = {
+        "model_name": model_name,
+        "dataset_name": dataset_name,
+        "cache_path": str(cache_path),
+        "n_rows": int(len(token_counts)),
+        "mean_token_count": float(np.mean(token_counts)) if token_counts else 0.0,
+        "max_token_count": int(max(token_counts)) if token_counts else 0,
+        "min_token_count": int(min(token_counts)) if token_counts else 0,
+        "max_length": int(max_length),
+        "loss_sequence_length_definition": "next-token cross-entropy losses; length is token_count=input_tokens_after_shift, usually tokenizer_length-1",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "skipped_ids": skipped_ids,
+        "failed_ids": failed_ids,
+    }
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def build_probability_features(
     input_path: str | Path,
     output_path: str | Path,
@@ -182,6 +249,11 @@ def build_probability_features(
     local_files_only: bool = False,
     auto_download: bool = False,
     model_root: str | None = None,
+    save_token_loss: bool = False,
+    token_loss_output_dir: str | Path = "features_token_loss",
+    dataset_name: str | None = None,
+    token_loss_model_name: str | None = None,
+    resume: bool = False,
 ) -> pd.DataFrame:
     df = load_dataset(input_path)
     load_name, prefix, resolved_key = resolve_requested_model(
@@ -210,6 +282,20 @@ def build_probability_features(
         except Exception as exc:
             warn(f"Failed to load {candidate}: {exc}")
     rows = []
+    cache_handle = None
+    cache_path = None
+    cached_ids: set[str] = set()
+    token_counts: list[int] = []
+    skipped_ids: list[str] = []
+    failed_ids: list[str] = []
+    dataset_name = dataset_name or Path(input_path).stem
+    cache_model_name = token_loss_model_name or prefix
+    if save_token_loss:
+        cache_path = token_loss_cache_path(token_loss_output_dir, cache_model_name, dataset_name)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        if resume:
+            cached_ids = read_cached_ids(cache_path)
+        cache_handle = gzip.open(cache_path, "at", encoding="utf-8")
     if tokenizer is None or model is None:
         warn(f"No probability model could be loaded for {load_name}; writing NaN features.")
         for _, row in df.iterrows():
@@ -221,12 +307,42 @@ def build_probability_features(
             warn(f"Using fallback model {loaded_name} for requested {load_name}; output prefix remains {prefix}.")
         for _, row in tqdm(df.iterrows(), total=len(df), desc=f"Probability {prefix}"):
             try:
-                feats = token_loss_features(row["text"], tokenizer, model, max_length=max_length, prefix=prefix)
+                losses = token_loss_sequence(row["text"], tokenizer, model, max_length=max_length)
+                feats = token_loss_features_from_values(losses, prefix=prefix)
+                if cache_handle is not None and str(row["id"]) not in cached_ids:
+                    item = {
+                        "id": row["id"],
+                        "model_name": cache_model_name,
+                        "token_count": int(losses.size),
+                        "loss_sequence": [float(x) for x in losses.tolist()],
+                        "rank_sequence": pd.Series(-losses).rank(method="average", pct=True).round(8).tolist() if losses.size else [],
+                        "prob_sequence": [float(math.exp(-min(float(x), 50.0))) for x in losses.tolist()],
+                        "text_hash": text_hash(row["text"]),
+                        "max_length": int(max_length),
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    cache_handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+                    token_counts.append(int(losses.size))
+                elif cache_handle is not None:
+                    skipped_ids.append(str(row["id"]))
             except Exception as exc:
                 warn(f"Probability feature failed for id={row['id']}: {exc}")
                 feats = empty_feature_row(prefix)
+                failed_ids.append(str(row["id"]))
             feats["id"] = row["id"]
             rows.append(feats)
+    if cache_handle is not None:
+        cache_handle.close()
+        write_token_loss_manifest(
+            cache_path.with_name(cache_path.name.replace(".jsonl.gz", "_manifest.json")),
+            model_name=cache_model_name,
+            dataset_name=dataset_name,
+            cache_path=cache_path,
+            token_counts=token_counts,
+            max_length=max_length,
+            skipped_ids=skipped_ids,
+            failed_ids=failed_ids,
+        )
     out = pd.DataFrame(rows)
     write_csv(out, output_path)
     del tokenizer, model
@@ -255,6 +371,11 @@ def main() -> None:
     parser.add_argument("--local_files_only", action="store_true")
     parser.add_argument("--auto_download", action="store_true")
     parser.add_argument("--model_root", default=None)
+    parser.add_argument("--save_token_loss", action="store_true")
+    parser.add_argument("--token_loss_output_dir", default="features_token_loss")
+    parser.add_argument("--dataset_name", default=None)
+    parser.add_argument("--token_loss_model_name", default=None)
+    parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     config.ensure_dirs()
     model_for_name = args.model_key or args.model or config.DEFAULT_SMALL_MODEL
@@ -276,6 +397,11 @@ def main() -> None:
         local_files_only=args.local_files_only,
         auto_download=args.auto_download,
         model_root=args.model_root,
+        save_token_loss=args.save_token_loss,
+        token_loss_output_dir=args.token_loss_output_dir,
+        dataset_name=args.dataset_name,
+        token_loss_model_name=args.token_loss_model_name,
+        resume=args.resume,
     )
 
 

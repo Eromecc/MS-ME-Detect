@@ -1,0 +1,16 @@
+# .gitignore Gap Report
+
+Existing `.gitignore` was read but not modified.
+
+Missing suggested patterns:
+- data/raw/
+- features_token_loss/
+- features_transition/formal/
+- features_by_dataset/
+- features_external/
+- features_source_matrix/
+- checkpoints*/
+- results*/**/*.joblib
+- *.jsonl.gz
+- *.parquet
+- *.npz

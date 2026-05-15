@@ -1,0 +1,116 @@
+path,size_mb,file_type,likely_purpose,can_commit_to_git,recommended_action
+data/raw/ghostbuster-data-master.zip,606.499,zip,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/M4-main.zip,206.05,zip,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+features_by_dataset/combined_public_full_allfeatures/all_features.csv,169.78,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/combined_strict/combined_strict_train_transition_features.csv,134.536,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/combined_strict/combined_strict_train_transition_features.csv,134.064,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_by_dataset/m4_full_allfeatures/all_features.csv,118.238,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/leave_out_ghostbuster/leave_out_ghostbuster_train_transition_features.csv,100.657,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/leave_out_ghostbuster/leave_out_ghostbuster_train_transition_features.csv,100.295,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/leave_out_ghostbuster/m4_train_transition_features.csv,97.257,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/m4/m4_train_transition_features.csv,97.256,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/combined_strict/m4_train_transition_features.csv,97.127,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/leave_out_ghostbuster/m4_train_transition_features.csv,96.916,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/m4/m4_train_transition_features.csv,96.907,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/combined_strict/m4_train_transition_features.csv,96.795,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_source_matrix/m4_train/all_features.csv,92.874,csv,Feature subsets extracted for strict source matrix experiments.,false,archive
+features_by_dataset/combined_public_full_allfeatures/scale_response_features.csv,86.57,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+data/raw/m4/data/arabic_chatGPT.jsonl,79.38,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/russian_chatGPT.jsonl,70.875,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+features_by_dataset/combined_public/all_features.csv,68.979,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+data/raw/m4/data/bulgarian_true_and_fake_news_chatGPT.jsonl,68.899,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+results_by_dataset/combined_public/best_model.pkl,64.268,pkl,Per-dataset result outputs.,false,archive
+checkpoints/combined_public/best_model.joblib,64.268,joblib,Original trained model checkpoints.,false,do_not_commit
+data/raw/hc3_plus/data/en/train.jsonl,63.056,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/russian_davinci.jsonl,62.59,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+checkpoints_optimized/combined_public_full_allfeatures_tuned/best_model.joblib,60.691,joblib,Cleaned/tuned model checkpoints.,false,do_not_commit
+features_by_dataset/m4_full_allfeatures/scale_response_features.csv,60.395,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+checkpoints_ablation/combined_public_basic_only/best_model.joblib,60.298,joblib,Ablation model checkpoints.,false,do_not_commit
+checkpoints_ablation/combined_public_probability_only/best_model.joblib,60.298,joblib,Ablation model checkpoints.,false,do_not_commit
+data/raw/m4/data/bulgarian_true_and_fake_news_davinci.jsonl,59.917,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/dataset_english_v1.csv,56.752,csv,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/train_sets/combined_public_train.csv,56.752,csv,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+checkpoints_ablation/combined_public_scale_response_only/best_model.joblib,55.265,joblib,Ablation model checkpoints.,false,do_not_commit
+data/raw/m4/data/wikihow_bloomz.jsonl,50.333,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/urdu_chatGPT.jsonl,49.5,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+features_by_dataset/ghostbuster_full_allfeatures/all_features.csv,47.043,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+features_by_dataset/m4/all_features.csv,45.515,csv,"Per-training-set feature tables, including full_allfeatures.",false,ignore
+features_token_loss/qwen25_7b/m4_train_token_loss.jsonl.gz,43.743,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/m4_train_token_loss.jsonl.gz,43.154,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+data/raw/chatgpt-comparison-detection-HC3-Plus-main.zip,42.945,zip,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+checkpoints_ablation/combined_public_basic_plus_scale_response/best_model.joblib,37.334,joblib,Ablation model checkpoints.,false,do_not_commit
+results_by_dataset/combined_public_full_allfeatures/best_model.pkl,37.195,pkl,Per-dataset result outputs.,false,archive
+checkpoints/combined_public_full_allfeatures/best_model.joblib,37.195,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints_ablation/combined_public_basic_plus_probability/best_model.joblib,37.106,joblib,Ablation model checkpoints.,false,do_not_commit
+features_source_matrix/ghostbuster_train/all_features.csv,37.038,csv,Feature subsets extracted for strict source matrix experiments.,false,archive
+data/train_sets/m4_train.csv,36.716,csv,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+checkpoints_ablation/combined_public_full_cleaned/best_model.joblib,36.614,joblib,Ablation model checkpoints.,false,do_not_commit
+checkpoints_optimized/combined_public_full_allfeatures_cleaned/best_model.joblib,36.469,joblib,Cleaned/tuned model checkpoints.,false,do_not_commit
+checkpoints_source_matrix/train_combined_strict/best_model.joblib,35.338,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/leave_out_ghostbuster/ghostbuster_train_transition_features.csv,34.039,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/m4/ghostbuster_train_transition_features.csv,34.038,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/fullscale_1_5b_optimized/qwen25_1_5b/combined_strict/ghostbuster_train_transition_features.csv,34.02,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/leave_out_ghostbuster/ghostbuster_train_transition_features.csv,33.932,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/m4/ghostbuster_train_transition_features.csv,33.931,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+features_transition/formal/qwen25_7b/combined_strict/ghostbuster_train_transition_features.csv,33.902,csv,Transition-state profiling features generated from token-loss cache.,false,archive
+data/raw/m4/data/wikihow_chatGPT.jsonl,32.661,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+checkpoints_source_matrix/train_leave_out_hc3_plus/best_model.joblib,32.368,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+data/raw/m4/data/wikihow_dolly2.jsonl,31.959,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/arxiv_bloomz.jsonl,31.866,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/wikihow_davinci.jsonl,30.657,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/raw/m4/data/reddit_bloomz.jsonl,29.628,jsonl,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+data/source_splits/m4_strict_train.csv,29.296,csv,"Datasets, train/test splits, strict source splits; private data should not be committed.",false,ignore
+results_by_dataset/m4/best_model.pkl,29.162,pkl,Per-dataset result outputs.,false,archive
+checkpoints/m4/best_model.joblib,29.162,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints_targeted/m4_plus_hc3/best_model.joblib,23.893,joblib,M4-targeted model checkpoints.,false,do_not_commit
+checkpoints_source_matrix/train_leave_out_ghostbuster/best_model.joblib,23.893,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+checkpoints_targeted/m4_plus_hc3_without_extreme_domains/best_model.joblib,21.634,joblib,M4-targeted model checkpoints.,false,do_not_commit
+checkpoints/ghostbuster/best_model.joblib,19.399,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints/m4_full_allfeatures/best_model.joblib,19.276,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints_targeted/m4_only_cleaned/best_model.joblib,18.566,joblib,M4-targeted model checkpoints.,false,do_not_commit
+checkpoints_source_matrix/train_m4/best_model.joblib,18.566,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+features_token_loss/qwen25_7b/ghostbuster_train_token_loss.jsonl.gz,15.494,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/ghostbuster_train_token_loss.jsonl.gz,15.22,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+checkpoints_source_matrix/train_leave_out_m4/best_model.joblib,10.035,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+checkpoints_targeted/m4_label_balanced/best_model.joblib,8.029,joblib,M4-targeted model checkpoints.,false,do_not_commit
+checkpoints/ghostbuster_full_allfeatures/best_model.joblib,7.822,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints_source_matrix/train_ghostbuster/best_model.joblib,7.442,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+results_transition/formal_combined_strict_full_cleaned_without_transition_best_model.joblib,7.245,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+results_transition/formal_combined_strict_full_cleaned_plus_transition_best_model.joblib,7.05,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_1_5b/combined_strict_train_token_loss.jsonl.gz,6.728,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+results_transition/formal_leave_out_ghostbuster_transition_only_best_model.joblib,5.876,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_7b/m4_dev_token_loss.jsonl.gz,5.528,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_7b/m4_test_token_loss.jsonl.gz,5.516,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/m4_dev_token_loss.jsonl.gz,5.492,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/m4_test_token_loss.jsonl.gz,5.48,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/combined_strict_dev_token_loss.jsonl.gz,4.831,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+results_transition/formal_leave_out_ghostbuster_full_cleaned_without_transition_best_model.joblib,4.674,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+results_transition/formal_leave_out_ghostbuster_full_cleaned_plus_transition_best_model.joblib,4.492,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+checkpoints_source_matrix/train_balanced_combined_strict/best_model.joblib,4.407,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+features_token_loss/qwen25_1_5b/leave_out_ghostbuster_train_token_loss.jsonl.gz,3.848,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+checkpoints_targeted/m4_plus_hc3_balanced/best_model.joblib,3.215,joblib,M4-targeted model checkpoints.,false,do_not_commit
+results_transition/formal_m4_transition_only_best_model.joblib,3.013,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_1_5b/leave_out_ghostbuster_dev_token_loss.jsonl.gz,2.894,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+checkpoints/hc3_plus_full_allfeatures/best_model.joblib,2.317,joblib,Original trained model checkpoints.,false,do_not_commit
+checkpoints_source_matrix/train_hc3_plus/best_model.joblib,2.051,joblib,Cross-source generalization model checkpoints.,false,do_not_commit
+results_transition/formal_m4_full_cleaned_without_transition_best_model.joblib,1.989,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_7b/ghostbuster_dev_token_loss.jsonl.gz,1.975,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_7b/ghostbuster_test_token_loss.jsonl.gz,1.961,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/ghostbuster_dev_token_loss.jsonl.gz,1.94,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+results_transition/formal_m4_full_cleaned_plus_transition_best_model.joblib,1.936,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_1_5b/ghostbuster_test_token_loss.jsonl.gz,1.927,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_7b/hc3_plus_train_token_loss.jsonl.gz,1.083,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/hc3_plus_train_token_loss.jsonl.gz,1.054,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+checkpoints_targeted/m4_generator_balanced/best_model.joblib,0.648,joblib,M4-targeted model checkpoints.,false,do_not_commit
+features_token_loss/qwen25_7b/hc3_plus_test_token_loss.jsonl.gz,0.554,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/hc3_plus_test_token_loss.jsonl.gz,0.54,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_7b/all_samples_token_loss.jsonl.gz,0.434,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/all_samples_token_loss.jsonl.gz,0.428,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+results_transition/transition_only_best_model.joblib,0.235,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+results_transition/full_cleaned_plus_transition_best_model.joblib,0.185,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+results_transition/full_cleaned_without_transition_best_model.joblib,0.182,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+features_token_loss/qwen25_7b/hc3_plus_dev_token_loss.jsonl.gz,0.117,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+features_token_loss/qwen25_1_5b/hc3_plus_dev_token_loss.jsonl.gz,0.114,jsonl.gz,Token-level loss cache for transition profiling; large generated cache.,false,archive
+checkpoints_targeted/m4_domain_balanced/best_model.joblib,0.019,joblib,M4-targeted model checkpoints.,false,do_not_commit
+results_transition/formal_combined_strict_transition_only_best_model.joblib,0.017,joblib,Transition-state profiling experiments and plots.,false,do_not_commit
+checkpoints/hc3_plus/best_model.joblib,0.004,joblib,Original trained model checkpoints.,false,do_not_commit

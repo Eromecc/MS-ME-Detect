@@ -1,0 +1,34 @@
+path,file_count,subdir_count,size_mb,last_modified,likely_purpose
+.gitignore,1,0,0.001,2026-05-12T14:26:59.223059+00:00,Top-level project file.
+README.md,1,0,0.011,2026-05-12T14:29:10.578944+00:00,Top-level project file.
+__pycache__,1,0,0.013,2026-05-13T13:34:53.563932+00:00,Python bytecode cache; safe to delete after listing.
+checkpoints,32,8,179.574,2026-05-13T17:37:09.653183+00:00,Original trained model checkpoints.
+checkpoints_ablation,24,6,287.014,2026-05-14T00:25:33.463854+00:00,Ablation model checkpoints.
+checkpoints_optimized,8,2,97.214,2026-05-14T00:29:01.155098+00:00,Cleaned/tuned model checkpoints.
+checkpoints_source_matrix,32,8,134.324,2026-05-14T00:39:11.645659+00:00,Cross-source generalization model checkpoints.
+checkpoints_targeted,28,7,76.202,2026-05-14T00:48:29.430671+00:00,M4-targeted model checkpoints.
+data,156114,1083,3362.408,2026-05-14T00:38:09.318494+00:00,"Datasets, train/test splits, strict source splits; private data should not be committed."
+docs,6,0,0.029,2026-05-14T03:18:39.522911+00:00,Generated project documentation and reproducibility notes.
+features,11,1,0.143,2026-05-13T13:37:05.336082+00:00,Generated feature CSVs for baseline feature extraction.
+features_by_dataset,52,8,739.665,2026-05-13T17:36:57.170477+00:00,"Per-training-set feature tables, including full_allfeatures."
+features_external,21,4,3.815,2026-05-13T15:53:20.436410+00:00,External all_samples feature tables.
+features_source_matrix,11,9,167.134,2026-05-14T00:38:37.813248+00:00,Feature subsets extracted for strict source matrix experiments.
+features_token_loss,48,2,170.168,2026-05-14T02:57:23.491919+00:00,Token-level loss cache for transition profiling; large generated cache.
+features_transition,97,14,1621.013,2026-05-14T03:08:14.316238+00:00,Transition-state profiling features generated from token-loss cache.
+logs,3,0,3.353,2026-05-12T14:23:27.640517+00:00,Run logs and generated execution output.
+main.py,1,0,0.008,2026-05-12T14:18:14.437906+00:00,Top-level project file.
+project_inventory,5,0,1.609,2026-05-14T03:18:39.412876+00:00,Generated inventory reports.
+requirements.txt,1,0,0.0,2026-05-12T08:14:00.952694+00:00,Top-level project file.
+results,19,0,0.511,2026-05-13T13:36:08.439938+00:00,Baseline result outputs.
+results_ablation,151,12,71.957,2026-05-14T00:48:56.081439+00:00,Feature ablation result tables and plots.
+results_by_dataset,136,8,226.72,2026-05-13T17:37:09.581195+00:00,Per-dataset result outputs.
+results_curated,98,4,7.253,2026-05-14T03:18:39.563799+00:00,"Curated small tables, manifests, and selected figures for sharing."
+results_diagnosis,97,1,16.754,2026-05-14T00:49:11.595708+00:00,all_samples diagnosis and error analysis plots/tables.
+results_external,226,21,5.689,2026-05-14T00:25:36.656357+00:00,External evaluation results and feature audit summaries.
+results_optimized,47,4,24.495,2026-05-14T00:48:57.782624+00:00,Cleaned/tuned full_allfeatures results.
+results_presentation,39,2,7.127,2026-05-14T01:05:59.433284+00:00,Presentation-ready figures and slide guide.
+results_source_matrix,416,33,56.217,2026-05-14T00:48:36.966009+00:00,"Cross-source generalization matrices, shift reports, and plots."
+results_targeted,99,8,4.115,2026-05-14T00:49:01.562770+00:00,M4-targeted training result tables and plots.
+results_transition,2059,227,82.658,2026-05-14T03:09:06.620822+00:00,Transition-state profiling experiments and plots.
+scripts,40,1,0.767,2026-05-14T03:18:17.979595+00:00,Experiment and utility scripts.
+src,30,1,0.334,2026-05-14T01:43:16.212961+00:00,Reusable project source code.

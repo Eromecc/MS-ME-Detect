@@ -1,0 +1,22 @@
+{
+  "experiment_name": "combined_public_full_allfeatures_tuned",
+  "best_model_name": "random_forest",
+  "best_params": {
+    "n_estimators": 500,
+    "max_depth": null,
+    "min_samples_leaf": 1,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "n_jobs": -1
+  },
+  "selection_metric": "auprc>auroc>f1",
+  "n_train": 21680,
+  "n_test_internal": 5421,
+  "n_features": 276,
+  "created_at": "2026-05-14T00:28:59.718898+00:00",
+  "class_balance_strategy": "class_weight=balanced; xgboost.scale_pos_weight=n_negative/n_positive",
+  "n_positive_train": 17055,
+  "n_negative_train": 4625,
+  "positive_rate_train": 0.786669741697417,
+  "scale_pos_weight": 0.27118147170917617
+}
