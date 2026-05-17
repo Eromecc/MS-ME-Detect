@@ -1,5 +1,34 @@
 # Reproducibility Commands
 
+## GitHub-Safe Quick Checks
+
+These commands inspect or dry-run the release artifacts without retraining large
+models:
+
+```bash
+python scripts/run_text_koopman_strict_math_experiment.py --dry_run \
+  --train_sources leave_out_ghostbuster \
+  --model qwen25_1_5b \
+  --max_rows_per_split 50 \
+  --seed 42
+```
+
+The full probability, scale-response, transition, Deep DMD, and Text-Koopman
+experiments require local model weights and large generated caches.  Those
+artifacts are intentionally excluded from GitHub and should be regenerated only
+when needed.
+
+Do not run these as part of ordinary release validation:
+
+- Qwen probability extraction
+- scale-response extraction
+- transition-state feature extraction
+- Deep DMD training
+- strict Text-Koopman training
+
+Use `results_curated/` and `results_presentation/figures_clean/` for the
+reviewable released outputs.
+
 These commands document prior experiment stages. They are not executed by the organization script.
 
 | Stage                       | Command                                                                                                                                                                                                                                                                                                                                                                                       | Expected outputs                                              | Estimated cost | Large model inference                            | Safe to rerun                                                               |

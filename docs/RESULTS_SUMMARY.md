@@ -1,5 +1,29 @@
 # Results Summary
 
+## Final Release Summary
+
+The selected main method is:
+
+```text
+leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
+AUROC 0.6951
+AUPRC 0.6592
+F1 0.6799
+TPR@FPR5% 0.0933
+ECE 0.1488
+Brier 0.2459
+```
+
+Deep DMD and strict mathematical Text-Koopman are included as completed
+diagnostic/theory-aligned experiments.  Deep DMD shows public-source signal but
+does not consistently beat transition-state profiling on `all_samples`.
+Strict mathematical Text-Koopman uses Qwen hidden states, learned lifting,
+per-document local `K_i`, and spectral-only classifiers; its leakage audit
+passes, but small validation does not beat transition on AUROC/AUPRC.
+
+See `docs/FINAL_EXPERIMENT_SUMMARY.md` for the compact final narrative and
+`results_curated/tables/` for GitHub-safe tables.
+
 Generated: 2026-05-14T03:18:39.376722+00:00
 
 

@@ -1,5 +1,26 @@
 # Transition-State Profiling Summary
 
+## Final Selection
+
+Transition-state profiling remains the selected main method for the GitHub
+release.  The strongest external `all_samples` configuration is:
+
+```text
+leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
+AUROC 0.6951
+AUPRC 0.6592
+F1 0.6799
+TPR@FPR5% 0.0933
+ECE 0.1488
+Brier 0.2459
+```
+
+Deep DMD and strict mathematical Text-Koopman were implemented and evaluated,
+but neither replaces transition-state profiling as the main method on
+AUROC/AUPRC.  Strict mathematical Text-Koopman improves some low-FPR small
+validation settings when combined with full/transition features, but remains
+below the selected transition model on AUROC/AUPRC.
+
 ## Motivation
 
 Transition-state profiling tests a content/structure separation idea: instead of using raw token IDs or token strings, token-level losses are mapped into abstract states and summarized as transition patterns.

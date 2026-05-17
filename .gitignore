@@ -28,6 +28,7 @@ secrets*
 
 # Datasets and private data
 data/
+data/raw/
 datasets/
 raw_data/
 processed_data/
@@ -46,17 +47,26 @@ features_by_dataset/
 features_external/
 features_source_matrix/
 features_token_loss/
+features_hidden_states/
 features_transition/
+features_transition/formal/
 features_koopman/
 features_deep_dmd/
+features_text_koopman/
+features_text_koopman_strict_math/
 
 # Model weights, checkpoints, and caches
 models/
 checkpoints/
 checkpoints_*/
+checkpoints*/
 hf_cache/
 modelscope_cache/
 .cache/
+*.joblib
+*.jsonl.gz
+*.parquet
+*.npz
 *.pt
 *.pth
 *.ckpt
@@ -75,6 +85,8 @@ results_optimized/
 results_source_matrix/
 results_targeted/
 results_transition/
+results_text_koopman/
+results_text_koopman_strict_math/
 results_curated/
 !results_curated/
 !results_curated/**
@@ -86,3 +98,6 @@ results_presentation/
 project_inventory/
 !project_inventory/
 !project_inventory/**
+
+# Keep model artifacts out of nested result directories.
+results*/**/*.joblib

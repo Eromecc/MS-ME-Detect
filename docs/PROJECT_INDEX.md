@@ -1,5 +1,28 @@
 # Project Index
 
+## GitHub Release Pointers
+
+Start with:
+
+- `README.md`
+- `docs/FINAL_EXPERIMENT_SUMMARY.md`
+- `docs/RESULTS_SUMMARY.md`
+- `docs/TRANSITION_STATE_PROFILING_SUMMARY.md`
+- `docs/STRICT_MATHEMATICAL_TEXT_KOOPMAN.md`
+- `docs/GITHUB_ARTIFACT_MANIFEST.md`
+- `docs/REPRODUCIBILITY_COMMANDS.md`
+
+Curated GitHub-safe outputs:
+
+- `results_curated/tables/`
+- `results_curated/figures/`
+- `results_curated/manifests/`
+- `results_presentation/figures_clean/`
+
+Do not treat raw data, full feature matrices, hidden-state caches, token-loss
+caches, transition formal caches, checkpoints, or model weights as GitHub
+artifacts.
+
 Generated: 2026-05-14T03:18:39.373501+00:00
 
 ## Project Purpose
