@@ -13,7 +13,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 from .hidden_state_cache import load_hidden_cache_map
-from .text_koopman_strict_math_features import local_exact_dmd_reduced
 from .text_koopman_strict_math_model import StrictKoopmanLifting
 
 
@@ -72,7 +71,7 @@ def save_loss_curves(history: list[dict], output_dir: str | Path) -> None:
         import matplotlib.pyplot as plt
 
         fig, axes = plt.subplots(2, 2, figsize=(11, 8))
-        for ax, key in zip(axes.ravel(), ["total", "recon", "dmd", "multistep"]):
+        for ax, key in zip(axes.ravel(), ["total", "recon", "lin", "multi"]):
             for split in ["train", "dev"]:
                 col = f"{split}_{key}"
                 if col in df.columns:
@@ -107,59 +106,205 @@ def _finite(x: torch.Tensor) -> torch.Tensor:
     return x if torch.isfinite(x).all() else torch.zeros((), dtype=x.dtype, device=x.device)
 
 
+def _as_zero(device: torch.device, dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    return torch.zeros((), dtype=dtype, device=device)
+
+
+def _loss_mode_weights(loss_mode: str, alpha: float, beta: float) -> tuple[float, float]:
+    if loss_mode == "recon_only":
+        return 0.0, 0.0
+    if loss_mode == "recon_lin":
+        return float(alpha), 0.0
+    if loss_mode == "recon_lin_multi":
+        return float(alpha), float(beta)
+    raise ValueError(f"Unsupported strict Koopman loss_mode: {loss_mode}")
+
+
+def _local_truncated_dmd_reduced(
+    z: torch.Tensor,
+    *,
+    dmd_rank: int,
+    ridge: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, str | None]:
+    """Differentiable per-document reduced DMD operator from current Z."""
+    x = z[:-1].T.contiguous()
+    y = z[1:].T.contiguous()
+    if x.shape[1] < 2:
+        raise ValueError("Need at least two transition snapshots for DMD.")
+    try:
+        u, s, vh = torch.linalg.svd(x, full_matrices=False)
+        if s.numel() == 0:
+            raise ValueError("empty singular spectrum")
+        numerical_rank = int(torch.sum(s > (torch.max(s) * 1e-6)).detach().cpu().item())
+        r = int(min(dmd_rank, numerical_rank, s.shape[0]))
+        if r < 1:
+            raise ValueError("rank too small")
+        u_r = u[:, :r]
+        s_r = s[:r]
+        v_r = vh.conj().T[:, :r]
+        k_tilde = u_r.T @ y @ v_r @ torch.diag(1.0 / (s_r + ridge))
+        a = u_r.T @ x
+        b = u_r.T @ y
+        return k_tilde, u_r, a, b, None
+    except RuntimeError as exc:
+        # Keep a differentiable dynamics objective instead of silently dropping
+        # the Koopman constraint when SVD is numerically unstable.
+        r = int(min(dmd_rank, x.shape[0], x.shape[1]))
+        if r < 1:
+            raise
+        a = x[:r, :]
+        b = y[:r, :]
+        gram = a @ a.T + float(ridge) * torch.eye(r, dtype=z.dtype, device=z.device)
+        k_tilde = torch.linalg.solve(gram.T, (b @ a.T).T).T
+        u_r = torch.eye(x.shape[0], r, dtype=z.dtype, device=z.device)
+        return k_tilde, u_r, a, b, f"svd_fallback_ridge_lstsq:{type(exc).__name__}:{str(exc)[:160]}"
+
+
+def compute_strict_koopman_losses(
+    model: StrictKoopmanLifting,
+    hidden_states: torch.Tensor,
+    alpha: float = 1.0,
+    beta: float = 0.5,
+    multi_steps: tuple[int, ...] = (2, 3),
+    dmd_rank: int = 32,
+    ridge: float = 1e-4,
+    stability_weight: float = 0.0,
+    return_details: bool = True,
+    loss_mode: str = "recon_lin_multi",
+    include_z: bool = False,
+) -> tuple[torch.Tensor, dict[str, float | int | str | None]]:
+    """Strict per-document Text-Koopman loss.
+
+    K_tilde is estimated from the current document's lifted trajectory Z inside
+    the forward loss path, so L_lin/L_multi gradients flow back to g_theta.
+    """
+    z, recon = model(hidden_states)
+    recon_loss = F.mse_loss(recon, hidden_states)
+    alpha_eff, beta_eff = _loss_mode_weights(loss_mode, alpha, beta)
+    lin_loss = _as_zero(hidden_states.device, hidden_states.dtype)
+    multi_loss = _as_zero(hidden_states.device, hidden_states.dtype)
+    stability = _as_zero(hidden_states.device, hidden_states.dtype)
+    details: dict[str, float | int | str | None] = {
+        "recon": float(recon_loss.detach().cpu()),
+        "lin": 0.0,
+        "multi": 0.0,
+        "stability": 0.0,
+        "total": float(recon_loss.detach().cpu()),
+        "valid_multi_steps": 0,
+        "skipped_multi_steps": 0,
+        "dmd_rank_used": 0,
+        "dmd_warning": None,
+    }
+    if include_z:
+        details["z"] = z
+    if alpha_eff == 0.0 and beta_eff == 0.0 and float(stability_weight) == 0.0:
+        return recon_loss, details if return_details else {}
+    if z.shape[0] < 3:
+        details["dmd_warning"] = f"sequence_too_short:{int(z.shape[0])}"
+        return recon_loss, details if return_details else {}
+
+    k_tilde, u_r, a, b, warning = _local_truncated_dmd_reduced(z, dmd_rank=dmd_rank, ridge=ridge)
+    details["dmd_rank_used"] = int(k_tilde.shape[0])
+    details["dmd_warning"] = warning
+    b_pred = k_tilde @ a
+    lin_loss = F.mse_loss(b_pred, b)
+
+    valid_multi = []
+    for step in tuple(int(s) for s in multi_steps):
+        if step <= 1:
+            details["skipped_multi_steps"] = int(details["skipped_multi_steps"]) + 1
+            continue
+        if z.shape[0] <= step + 1:
+            details["skipped_multi_steps"] = int(details["skipped_multi_steps"]) + 1
+            continue
+        x_m = z[:-step].T.contiguous()
+        y_m = z[step:].T.contiguous()
+        # Use the same local DMD subspace/operator estimated from one-step
+        # snapshots, matching the strict per-document Koopman formulation.
+        if warning is None:
+            a_m = u_r.T @ x_m
+            b_m = u_r.T @ y_m
+        else:
+            r = k_tilde.shape[0]
+            a_m = x_m[:r, :]
+            b_m = y_m[:r, :]
+        pred_m = torch.linalg.matrix_power(k_tilde, step) @ a_m
+        valid_multi.append(F.mse_loss(pred_m, b_m))
+    if valid_multi:
+        multi_loss = torch.stack(valid_multi).mean()
+    details["valid_multi_steps"] = len(valid_multi)
+    if float(stability_weight) > 0.0:
+        stability = _stability_loss(k_tilde)
+
+    total = recon_loss + alpha_eff * lin_loss + beta_eff * multi_loss + float(stability_weight) * stability
+    details.update(
+        {
+            "recon": float(recon_loss.detach().cpu()),
+            "lin": float(lin_loss.detach().cpu()),
+            "multi": float(multi_loss.detach().cpu()),
+            "stability": float(stability.detach().cpu()),
+            "total": float(total.detach().cpu()),
+        }
+    )
+    return total, details if return_details else {}
+
+
 def batch_loss(
     model: StrictKoopmanLifting,
     batch,
     *,
     dmd_rank: int,
-    lambda_recon: float,
-    lambda_dmd: float,
-    lambda_multistep: float,
-    lambda_stability: float,
+    alpha: float,
+    beta: float,
+    multi_steps: tuple[int, ...],
+    ridge: float,
+    stability_weight: float,
     lambda_var: float,
+    loss_mode: str,
     device: torch.device,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     total = torch.tensor(0.0, device=device)
-    parts = {"recon": 0.0, "dmd": 0.0, "multistep": 0.0, "stability": 0.0, "var": 0.0}
+    parts = {
+        "recon": 0.0,
+        "lin": 0.0,
+        "multi": 0.0,
+        "stability": 0.0,
+        "var": 0.0,
+        "valid_multi_steps": 0.0,
+        "skipped_multi_steps": 0.0,
+        "dmd_fallbacks": 0.0,
+    }
     n = 0
     for _, h_cpu in batch:
         h = h_cpu.to(device, dtype=torch.float32)
-        z, recon = model(h)
-        recon_loss = F.mse_loss(recon, h)
-        try:
-            k, ur, x, y, x_r, _ = local_exact_dmd_reduced(z, rank=dmd_rank)
-            y_hat = ur @ (k @ x_r)
-            one = F.mse_loss(y_hat, y) / torch.mean(y**2).clamp_min(1e-6)
-            multi = torch.tensor(0.0, device=device)
-            steps = 0
-            for step in [2, 4]:
-                if x_r.shape[1] > step:
-                    pred = torch.linalg.matrix_power(k, step) @ x_r[:, :-step]
-                    target = x_r[:, step:]
-                    multi = multi + F.mse_loss(pred, target) / torch.mean(target**2).clamp_min(1e-6)
-                    steps += 1
-            if steps:
-                multi = multi / steps
-            stab = _stability_loss(k)
-        except Exception:
-            one = torch.tensor(0.0, device=device)
-            multi = torch.tensor(0.0, device=device)
-            stab = torch.tensor(0.0, device=device)
+        loss, detail = compute_strict_koopman_losses(
+            model,
+            h,
+            alpha=alpha,
+            beta=beta,
+            multi_steps=multi_steps,
+            dmd_rank=dmd_rank,
+            ridge=ridge,
+            stability_weight=stability_weight,
+            loss_mode=loss_mode,
+            return_details=True,
+            include_z=True,
+        )
+        z = detail.pop("z")
         var = _variance_loss(z)
-        recon_loss = _finite(recon_loss)
-        one = torch.clamp(_finite(one), max=10.0)
-        multi = torch.clamp(_finite(multi), max=10.0)
-        stab = torch.clamp(_finite(stab), max=10.0)
         var = _finite(var)
-        loss = lambda_recon * recon_loss + lambda_dmd * one + lambda_multistep * multi + lambda_stability * stab + lambda_var * var
+        loss = loss + lambda_var * var
         if not torch.isfinite(loss).all():
             continue
         total = total + loss
-        parts["recon"] += float(recon_loss.detach().cpu())
-        parts["dmd"] += float(one.detach().cpu())
-        parts["multistep"] += float(multi.detach().cpu())
-        parts["stability"] += float(stab.detach().cpu())
+        parts["recon"] += float(detail["recon"])
+        parts["lin"] += float(detail["lin"])
+        parts["multi"] += float(detail["multi"])
+        parts["stability"] += float(detail["stability"])
         parts["var"] += float(var.detach().cpu())
+        parts["valid_multi_steps"] += float(detail["valid_multi_steps"])
+        parts["skipped_multi_steps"] += float(detail["skipped_multi_steps"])
+        parts["dmd_fallbacks"] += 1.0 if detail.get("dmd_warning") else 0.0
         n += 1
     if n:
         total = total / n
@@ -206,10 +351,13 @@ def train_strict_math_lifting(
     learning_rate: float = 1e-3,
     seed: int = 42,
     device: str | torch.device = "auto",
-    lambda_recon: float = 0.5,
-    lambda_dmd: float = 1.0,
-    lambda_multistep: float = 0.5,
-    lambda_stability: float = 0.1,
+    resume: bool = False,
+    alpha_lin: float = 1.0,
+    beta_multi: float = 0.5,
+    multi_steps: tuple[int, ...] = (2, 3),
+    loss_mode: str = "recon_lin_multi",
+    ridge: float = 1e-4,
+    stability_weight: float = 0.0,
     lambda_var: float = 0.01,
 ) -> dict:
     torch.manual_seed(seed)
@@ -243,17 +391,32 @@ def train_strict_math_lifting(
     opt = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
     loss_kwargs = {
         "dmd_rank": int(dmd_rank),
-        "lambda_recon": lambda_recon,
-        "lambda_dmd": lambda_dmd,
-        "lambda_multistep": lambda_multistep,
-        "lambda_stability": lambda_stability,
+        "alpha": float(alpha_lin),
+        "beta": float(beta_multi),
+        "multi_steps": tuple(int(x) for x in multi_steps),
+        "ridge": float(ridge),
+        "stability_weight": float(stability_weight),
         "lambda_var": lambda_var,
+        "loss_mode": loss_mode,
     }
     best = (np.inf, -1, None)
     bad = 0
     history: list[dict] = []
     oom_events: list[dict] = []
-    for epoch in range(1, int(epochs) + 1):
+    start_epoch = 1
+    last_ckpt = out / "strict_math_lifting_last.pt"
+    if resume and last_ckpt.exists() and not (out / "strict_math_metadata.json").exists():
+        payload = torch.load(last_ckpt, map_location=device)
+        model.load_state_dict(payload["model_state"])
+        if "optimizer_state" in payload:
+            opt.load_state_dict(payload["optimizer_state"])
+        history = list(payload.get("history", []))
+        bad = int(payload.get("bad_epochs", 0))
+        best_payload = payload.get("best")
+        if best_payload:
+            best = (float(best_payload["loss"]), int(best_payload["epoch"]), best_payload["model_state"])
+        start_epoch = int(payload.get("epoch", 0)) + 1
+    for epoch in range(start_epoch, int(epochs) + 1):
         model.train()
         train_parts = []
         for batch in train_loader:
@@ -280,11 +443,27 @@ def train_strict_math_lifting(
         row = {"epoch": epoch, **{f"train_{k}": v for k, v in train_mean.items()}, **{f"dev_{k}": v for k, v in dev_mean.items()}}
         history.append(row)
         pd.DataFrame(history).to_csv(out / "training_history_partial.csv", index=False)
+        print(
+            f"[strict-math] epoch={epoch} loss_mode={loss_mode} dmd_rank={dmd_rank} "
+            f"train_total={train_mean.get('total', np.nan):.6g} dev_total={dev_mean.get('total', np.nan):.6g}",
+            flush=True,
+        )
         if dev_mean["total"] < best[0]:
             best = (dev_mean["total"], epoch, {k: v.detach().cpu() for k, v in model.state_dict().items()})
             bad = 0
         else:
             bad += 1
+        torch.save(
+            {
+                "model_state": model.state_dict(),
+                "optimizer_state": opt.state_dict(),
+                "epoch": epoch,
+                "history": history,
+                "bad_epochs": bad,
+                "best": {"loss": best[0], "epoch": best[1], "model_state": best[2]} if best[2] is not None else None,
+            },
+            last_ckpt,
+        )
         if bad >= patience:
             break
     if best[2] is not None:
@@ -313,12 +492,15 @@ def train_strict_math_lifting(
         "strict_math_failed_due_to_memory": bool(oom_events and not history),
         "oom_events": oom_events,
         "loss_weights": {
-            "lambda_recon": lambda_recon,
-            "lambda_dmd": lambda_dmd,
-            "lambda_multistep": lambda_multistep,
-            "lambda_stability": lambda_stability,
+            "lambda_recon": 1.0,
+            "alpha_lin": alpha_lin,
+            "beta_multi": beta_multi,
+            "stability_weight": stability_weight,
             "lambda_var": lambda_var,
         },
+        "loss_mode": loss_mode,
+        "multi_steps": list(multi_steps),
+        "ridge": float(ridge),
     }
     (out / "strict_math_metadata.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"model": model, "metadata": meta, "history": history}

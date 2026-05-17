@@ -8,6 +8,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 
 import joblib
 import matplotlib.pyplot as plt
@@ -53,6 +54,25 @@ def save_json(obj, path: Path) -> None:
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def append_error(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def gpu_info() -> dict:
+    try:
+        import torch
+
+        return {
+            "cuda_available": bool(torch.cuda.is_available()),
+            "cuda_device_count": int(torch.cuda.device_count()) if torch.cuda.is_available() else 0,
+            "devices": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] if torch.cuda.is_available() else [],
+        }
+    except Exception as exc:
+        return {"cuda_available": False, "error": repr(exc)}
+
+
 def dataset_names_needed(train_sources: list[str], test_sets: list[str]) -> list[str]:
     needed = set(test_sets)
     for train_name in train_sources:
@@ -81,9 +101,9 @@ def load_qwen_for_hidden(model_name: str):
     return load_causal_lm(model_local_path(model_name), dtype=config.DTYPE, device_map=None, local_files_only=True)
 
 
-def experiment_name(train_source: str, model_name: str, observable_dim: int, dmd_rank: int, max_length: int, max_rows_per_split: int | None) -> str:
+def experiment_name(train_source: str, model_name: str, observable_dim: int, dmd_rank: int, max_length: int, max_rows_per_split: int | None, loss_mode: str) -> str:
     suffix = f"_n{max_rows_per_split}" if max_rows_per_split is not None else ""
-    return f"{train_source}_{model_name}_hidden_to_obs{observable_dim}_rank{dmd_rank}_len{max_length}{suffix}"
+    return f"{train_source}_{model_name}_{loss_mode}_hidden_to_obs{observable_dim}_rank{dmd_rank}_len{max_length}{suffix}"
 
 
 def strict_feature_csv(feature_root: Path, exp: str, dataset_name: str) -> Path:
@@ -262,6 +282,43 @@ def plot_outputs(summary: pd.DataFrame, plot_dir: Path) -> None:
         save_fig(fig, plot_dir / "strict_math_source_matrix_heatmap")
 
 
+def plot_loss_update_outputs(summary: pd.DataFrame, loss_curves: pd.DataFrame, feature_pool: pd.DataFrame, plot_dir: Path) -> None:
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    if not loss_curves.empty:
+        fig, ax = plt.subplots(figsize=(11, 5))
+        for col in ["train_recon", "train_lin", "train_multi", "train_total", "dev_recon", "dev_lin", "dev_multi", "dev_total"]:
+            if col in loss_curves.columns:
+                sns.lineplot(data=loss_curves, x="epoch", y=col, hue="loss_mode", style="dmd_rank", ax=ax, legend=False)
+        ax.set_title("Strict Text-Koopman loss terms")
+        save_fig(fig, plot_dir / "loss_terms_curve")
+    ok = summary[summary["status"].eq("ok")].copy() if not summary.empty and "status" in summary else pd.DataFrame()
+    all_s = ok[ok["test_set"].eq("all_samples")]
+    if not all_s.empty:
+        spec = all_s[all_s["feature_set"].isin(["strict_koopman_spectral_only", "full_plus_transition_plus_strict_koopman"])]
+        if not spec.empty:
+            fig, ax = plt.subplots(figsize=(11, 5))
+            p = spec.melt(id_vars=["loss_mode", "dmd_rank", "feature_set"], value_vars=["auroc", "auprc"], var_name="metric", value_name="value")
+            sns.barplot(data=p, x="loss_mode", y="value", hue="metric", ax=ax)
+            ax.tick_params(axis="x", rotation=15)
+            save_fig(fig, plot_dir / "loss_ablation_auroc_auprc")
+            fig, ax = plt.subplots(figsize=(11, 5))
+            p = spec.melt(id_vars=["loss_mode", "dmd_rank", "feature_set"], value_vars=["tpr_at_fpr_1pct", "tpr_at_fpr_5pct"], var_name="metric", value_name="value")
+            sns.barplot(data=p, x="loss_mode", y="value", hue="metric", ax=ax)
+            ax.tick_params(axis="x", rotation=15)
+            save_fig(fig, plot_dir / "loss_ablation_low_fpr")
+    if not feature_pool.empty and "loss_mode" in feature_pool:
+        if "strict_koopman_spectral_radius" in feature_pool:
+            fig, ax = plt.subplots(figsize=(9, 5))
+            sns.boxplot(data=feature_pool, x="loss_mode", y="strict_koopman_spectral_radius", ax=ax)
+            ax.tick_params(axis="x", rotation=15)
+            save_fig(fig, plot_dir / "spectral_radius_by_loss_mode")
+        if "strict_koopman_normalized_dmd_error" in feature_pool:
+            fig, ax = plt.subplots(figsize=(9, 5))
+            sns.boxplot(data=feature_pool, x="loss_mode", y="strict_koopman_normalized_dmd_error", ax=ax)
+            ax.tick_params(axis="x", rotation=15)
+            save_fig(fig, plot_dir / "dmd_residual_by_loss_mode")
+
+
 def plot_feature_distributions(df: pd.DataFrame, cols: list[str], plot_dir: Path) -> None:
     if df.empty or "label" not in df:
         return
@@ -327,6 +384,41 @@ def write_report(result_dir: Path, summary: pd.DataFrame, audit: dict, meta: dic
     (result_dir / "STRICT_TEXT_KOOPMAN_REPORT.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_loss_update_report(result_dir: Path, summary: pd.DataFrame, manifest: dict) -> None:
+    all_s = summary[summary["test_set"].eq("all_samples")].copy() if not summary.empty and "test_set" in summary else pd.DataFrame()
+    strict = all_s[all_s["feature_set"].eq("strict_koopman_spectral_only")] if not all_s.empty else pd.DataFrame()
+    combo = all_s[all_s["feature_set"].eq("full_plus_transition_plus_strict_koopman")] if not all_s.empty else pd.DataFrame()
+    lines = [
+        "# Strict Text-Koopman Loss Update Report",
+        "",
+        f"Created at: {now()}",
+        "",
+        f"- previous_best_transition_auroc: `{PREVIOUS_BEST['auroc']}`",
+        f"- previous_best_transition_auprc: `{PREVIOUS_BEST['auprc']}`",
+        f"- previous_best_transition_tpr_at_fpr_5pct: `{PREVIOUS_BEST['tpr_at_fpr_5pct']}`",
+        f"- errors: `{len(manifest.get('errors', []))}`",
+        f"- gpu_info: `{manifest.get('gpu_info')}`",
+        "",
+        "## all_samples strict_koopman_spectral_only",
+        "",
+    ]
+    lines.extend(["```text", strict.to_string(index=False) if not strict.empty else "No rows.", "```", ""])
+    lines.extend(["## all_samples full_plus_transition_plus_strict_koopman", "", "```text", combo.to_string(index=False) if not combo.empty else "No rows.", "```", ""])
+    lines.extend(
+        [
+            "## Files",
+            "",
+            "- `loss_ablation_summary.csv`",
+            "- `all_samples_summary.csv`",
+            "- `loss_curves.csv`",
+            "- `loss_update_manifest.json`",
+            "- `error_log.txt` when any configuration fails",
+            "",
+        ]
+    )
+    (result_dir / "LOSS_UPDATE_REPORT.md").write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source_splits", default="data/source_splits")
@@ -337,6 +429,7 @@ def main() -> None:
     parser.add_argument("--feature_dir", default="features_text_koopman_strict_math")
     parser.add_argument("--checkpoint_dir", default="checkpoints_text_koopman_strict_math")
     parser.add_argument("--output_dir", default="results_text_koopman_strict_math")
+    parser.add_argument("--output_subdir", default=None)
     parser.add_argument("--train_sources", nargs="+", default=["leave_out_ghostbuster"])
     parser.add_argument("--test_sets", nargs="+", default=TEST_SETS)
     parser.add_argument("--model", default="qwen25_1_5b")
@@ -345,6 +438,14 @@ def main() -> None:
     parser.add_argument("--observable_multiplier", type=int, default=2)
     parser.add_argument("--observable_dim", type=int, default=None)
     parser.add_argument("--dmd_ranks", nargs="+", type=int, default=[32])
+    parser.add_argument("--loss_modes", nargs="+", choices=["recon_only", "recon_lin", "recon_lin_multi"], default=None)
+    parser.add_argument("--loss_mode", choices=["recon_only", "recon_lin", "recon_lin_multi"], default="recon_lin_multi")
+    parser.add_argument("--alpha_lin", type=float, default=1.0)
+    parser.add_argument("--beta_multi", type=float, default=0.5)
+    parser.add_argument("--multi_steps", nargs="+", type=int, default=[2, 3])
+    parser.add_argument("--disable_stability_loss", action="store_true")
+    parser.add_argument("--log_loss_terms", action="store_true")
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--patience", type=int, default=3)
     parser.add_argument("--batch_size", type=int, default=1)
@@ -364,6 +465,8 @@ def main() -> None:
     data = build_base_datasets(ROOT / args.source_splits, ROOT / args.external_test, args.max_rows_per_split, args.seed)
     needed = dataset_names_needed(args.train_sources, args.test_sets)
     result_dir = ROOT / args.output_dir
+    if args.output_subdir:
+        result_dir = result_dir / args.output_subdir
     feature_root = ROOT / args.feature_dir
     ckpt_root = ROOT / args.checkpoint_dir
     plot_dir = result_dir / "plots"
@@ -383,6 +486,11 @@ def main() -> None:
         "needed_datasets": {k: len(data[k]) for k in needed},
         "hidden_size_from_manifest": hidden_size or None,
         "observable_dim": observable_dim,
+        "loss_modes": args.loss_modes or [args.loss_mode],
+        "alpha_lin": args.alpha_lin,
+        "beta_multi": args.beta_multi,
+        "multi_steps": args.multi_steps,
+        "gpu_info": gpu_info(),
         "strict_policy": "hidden_states directly enter g_theta; no PCA/random projection; downstream strict_koopman_* spectral features only.",
     }
     if args.dry_run:
@@ -399,18 +507,24 @@ def main() -> None:
     external_features = pd.read_csv(ROOT / args.external_features)
     full_cols = cleaned_full_columns(train_features)
     summary_rows = []
-    manifest = {"created_at": now(), "args": vars(args), "hidden_cache": cache_info, "experiments": {}, "errors": []}
+    manifest = {"created_at": now(), "args": vars(args), "hidden_cache": cache_info, "gpu_info": gpu_info(), "experiments": {}, "errors": []}
     latest_meta = None
     latest_audit = {}
+    loss_modes = args.loss_modes or [args.loss_mode]
+    loss_curve_frames = []
+    plot_feature_frames = []
+    error_log = result_dir / "error_log.txt"
 
     for train_source in args.train_sources:
         train_meta, dev_meta = composite_train_dev(data, train_source)
-        for dmd_rank in args.dmd_ranks:
+        for loss_mode in loss_modes:
+          for dmd_rank in args.dmd_ranks:
             hidden_manifest = read_hidden_manifest(ROOT / args.hidden_dir, args.model, "m4_train")
             hidden_size = int(hidden_manifest.get("hidden_size", hidden_size))
             observable_dim = int(args.observable_dim or (args.observable_multiplier * hidden_size))
-            exp = experiment_name(train_source, args.model, observable_dim, dmd_rank, args.max_length, args.max_rows_per_split)
+            exp = experiment_name(train_source, args.model, observable_dim, dmd_rank, args.max_length, args.max_rows_per_split, loss_mode)
             ckpt = ckpt_root / exp
+            exp_started = perf_counter()
             try:
                 meta_path = ckpt / "strict_math_metadata.json"
                 if not meta_path.exists():
@@ -433,9 +547,23 @@ def main() -> None:
                         batch_size=args.batch_size,
                         seed=args.seed,
                         device=args.device,
+                        resume=args.resume,
+                        alpha_lin=args.alpha_lin,
+                        beta_multi=args.beta_multi,
+                        multi_steps=tuple(args.multi_steps),
+                        loss_mode=loss_mode,
+                        stability_weight=0.0 if args.disable_stability_loss else 0.0,
                     )
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
                 latest_meta = meta
+                history_path = ckpt / "training_history.csv"
+                if history_path.exists():
+                    hist = pd.read_csv(history_path)
+                    hist["experiment"] = exp
+                    hist["train_source"] = train_source
+                    hist["loss_mode"] = loss_mode
+                    hist["dmd_rank"] = dmd_rank
+                    loss_curve_frames.append(hist)
                 if args.run_feature_extract:
                     feature_device = "cuda" if args.device == "auto" and __import__("torch").cuda.is_available() else args.device
                     for ds in needed:
@@ -443,6 +571,7 @@ def main() -> None:
                         allowed = set(data[ds]["id"].astype(str)) if args.max_rows_per_split is not None else None
                         if feature_complete(out_csv, meta.get("created_at")):
                             continue
+                        print(f"[strict-math] feature_extract_start experiment={exp} dataset={ds}", flush=True)
                         extract_strict_math_features(
                             hidden_root=ROOT / args.hidden_dir,
                             model_name=args.model,
@@ -454,7 +583,13 @@ def main() -> None:
                             allowed_ids=allowed,
                             device=feature_device,
                         )
+                        print(f"[strict-math] feature_extract_done experiment={exp} dataset={ds}", flush=True)
                 pool = pool_features(feature_root, exp, needed)
+                if not pool.empty:
+                    fp = pool.copy()
+                    fp["loss_mode"] = loss_mode
+                    fp["dmd_rank"] = dmd_rank
+                    plot_feature_frames.append(fp)
                 train_base = add_features(train_meta, pool)
                 dev_base = add_features(dev_meta, pool)
                 cols = strict_cols(train_base)
@@ -522,25 +657,41 @@ def main() -> None:
                         out = result_dir / f"{exp}_{fs}_to_{test_name}"
                         metrics = eval_one(best_model, test_df, fs_cols, med, out)
                         write_csv(pd.DataFrame([metrics]), out / "detector_metrics.csv")
-                        summary_rows.append({"status": "ok", "experiment": exp, "model": args.model, "train_source": train_source, "feature_set": fs, "test_set": test_name, "best_model": best_name, "n_features": len(fs_cols), **metrics})
-                manifest["experiments"][exp] = {"status": "ok", "checkpoint": str(ckpt), "metadata": meta}
+                        summary_rows.append({"status": "ok", "experiment": exp, "model": args.model, "train_source": train_source, "loss_mode": loss_mode, "dmd_rank": dmd_rank, "feature_set": fs, "test_set": test_name, "best_model": best_name, "n_features": len(fs_cols), **metrics})
+                manifest["experiments"][exp] = {
+                    "status": "ok",
+                    "checkpoint": str(ckpt),
+                    "metadata": meta,
+                    "loss_mode": loss_mode,
+                    "dmd_rank": dmd_rank,
+                    "batch_size": args.batch_size,
+                    "elapsed_seconds": float(perf_counter() - exp_started),
+                }
+                save_json(manifest, result_dir / "loss_update_manifest.partial.json")
                 plot_feature_distributions(pd.concat([dev_base, add_features(data["all_samples"], pool)], ignore_index=True), cols, plot_dir)
             except RuntimeError as exc:
                 failed_due_memory = is_oom(exc)
-                err = {"experiment": exp, "error": repr(exc), "strict_math_failed_due_to_memory": failed_due_memory}
+                err = {"experiment": exp, "error": repr(exc), "strict_math_failed_due_to_memory": failed_due_memory, "elapsed_seconds": float(perf_counter() - exp_started)}
                 manifest["errors"].append(err)
+                append_error(error_log, {"created_at": now(), **err})
+                save_json(manifest, result_dir / "loss_update_manifest.partial.json")
                 save_json(err, result_dir / f"{exp}_failure.json")
                 if failed_due_memory:
                     continue
                 continue
             except Exception as exc:
-                manifest["errors"].append({"experiment": exp, "error": repr(exc), "strict_math_failed_due_to_memory": False})
+                err = {"experiment": exp, "error": repr(exc), "strict_math_failed_due_to_memory": False, "elapsed_seconds": float(perf_counter() - exp_started)}
+                manifest["errors"].append(err)
+                append_error(error_log, {"created_at": now(), **err})
+                save_json(manifest, result_dir / "loss_update_manifest.partial.json")
                 continue
 
     summary = pd.DataFrame(summary_rows)
     write_csv(summary, result_dir / "strict_math_summary.csv")
+    write_csv(summary, result_dir / "loss_ablation_summary.csv")
     if not summary.empty:
         write_csv(summary[summary["test_set"].eq("all_samples")], result_dir / "strict_math_all_samples_summary.csv")
+        write_csv(summary[summary["test_set"].eq("all_samples")], result_dir / "all_samples_summary.csv")
         prev = pd.DataFrame([{"model_version": "previous_best_transition", "train_source": "leave_out_ghostbuster", "feature_set": "full_plus_1_5b_and_7b_transition", **PREVIOUS_BEST}])
         best = summary[summary["test_set"].eq("all_samples")].sort_values(["auroc", "auprc"], ascending=False).head(10)
         write_csv(pd.concat([prev, best], ignore_index=True), result_dir / "strict_math_vs_previous_best.csv")
@@ -548,10 +699,16 @@ def main() -> None:
         write_csv(source, result_dir / "strict_math_source_matrix.csv")
         if args.run_plots:
             plot_outputs(summary, plot_dir)
+    loss_curves = pd.concat(loss_curve_frames, ignore_index=True) if loss_curve_frames else pd.DataFrame()
+    write_csv(loss_curves, result_dir / "loss_curves.csv")
+    feature_plot_pool = pd.concat(plot_feature_frames, ignore_index=True) if plot_feature_frames else pd.DataFrame()
+    plot_loss_update_outputs(summary, loss_curves, feature_plot_pool, result_dir / "plots")
     write_report(result_dir, summary, latest_audit, latest_meta)
     manifest["completed_at"] = now()
     manifest["summary_rows"] = int(len(summary_rows))
+    write_loss_update_report(result_dir, summary, manifest)
     save_json(manifest, result_dir / "strict_math_manifest.json")
+    save_json(manifest, result_dir / "loss_update_manifest.json")
 
 
 if __name__ == "__main__":
