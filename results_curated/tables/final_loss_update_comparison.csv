@@ -1,0 +1,5 @@
+model_version,train_source,feature_set,loss_mode,dmd_rank,auroc,auprc,f1,tpr_at_fpr_1pct,tpr_at_fpr_5pct,fpr_at_tpr_95pct,ece,brier,mcc
+previous_best_transition,leave_out_ghostbuster,full_plus_1_5b_and_7b_transition,,,0.6951,0.6592,0.6799,0.02,0.0933,,0.1488,0.2459,
+strict_loss_update_best_overall,leave_out_ghostbuster,full_plus_transition_plus_strict_koopman,recon_only,16,0.7119777777777777,0.6860197864224458,0.6788990825688074,0.0133333333333333,0.14,0.84,0.1796222222222222,0.256891111111111,0.1580348853102534
+strict_loss_update_best_low_fpr,leave_out_ghostbuster,full_plus_transition_plus_strict_koopman,recon_lin,32,0.6576888888888889,0.656414569086135,0.6619385342789598,0.0133333333333333,0.2066666666666666,0.9,0.1798888888888888,0.2656464444444444,0.0815332650783714
+strict_loss_update_recon_lin_multi_best,leave_out_ghostbuster,full_plus_transition_plus_strict_koopman,recon_lin_multi,16,0.6632000000000001,0.6497641142618736,0.6696629213483146,0.0133333333333333,0.1466666666666666,0.8866666666666667,0.2047333333333334,0.2748877777777777,0.0781133465884943

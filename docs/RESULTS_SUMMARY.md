@@ -2,7 +2,7 @@
 
 ## Final Release Summary
 
-The selected main method is:
+The previous selected transition reference is:
 
 ```text
 leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
@@ -14,12 +14,51 @@ ECE 0.1488
 Brier 0.2459
 ```
 
+The strict Text-Koopman loss update produced a new best `all_samples` external
+result when strict spectral features are combined with full+transition
+features:
+
+```text
+leave_out_ghostbuster + qwen25_1_5b
+feature_set = full_plus_transition_plus_strict_koopman
+loss_mode = recon_only
+dmd_rank = 16
+classifier = RandomForest
+n_features = 805
+AUROC 0.7120
+AUPRC 0.6860
+F1 0.6789
+TPR@FPR1% 0.0133
+TPR@FPR5% 0.1400
+FPR@TPR95% 0.8400
+ECE 0.1796
+Brier 0.2569
+MCC 0.1580
+```
+
+Best low-FPR strict loss-update row:
+
+```text
+loss_mode = recon_lin
+dmd_rank = 32
+feature_set = full_plus_transition_plus_strict_koopman
+AUROC 0.6577
+AUPRC 0.6564
+F1 0.6619
+TPR@FPR5% 0.2067
+ECE 0.1799
+Brier 0.2656
+MCC 0.0815
+```
+
 Deep DMD and strict mathematical Text-Koopman are included as completed
 diagnostic/theory-aligned experiments.  Deep DMD shows public-source signal but
 does not consistently beat transition-state profiling on `all_samples`.
 Strict mathematical Text-Koopman uses Qwen hidden states, learned lifting,
 per-document local `K_i`, and spectral-only classifiers; its leakage audit
-passes, but small validation does not beat transition on AUROC/AUPRC.
+passes. The loss-update ablation shows that the new best external result comes
+from the `recon_only/rank16` ablation rather than `recon_lin_multi`. `L_lin`
+improves some low-FPR settings, but `L_multi` did not show further gain.
 
 See `docs/FINAL_EXPERIMENT_SUMMARY.md` for the compact final narrative and
 `results_curated/tables/` for GitHub-safe tables.
@@ -300,15 +339,22 @@ All `all_samples` results below are external-only. Model selection, threshold se
 | Best full + Deep DMD | m4 | full_plus_deep_dmd_spectral | 0.6652 | 0.6571 | 0.6667 | 0.0133 | 0.1200 | 0.4148 | 0.4099 |
 | Best full + transition + Deep DMD | leave_out_ghostbuster | full_plus_transition_plus_deep_dmd | 0.6894 | 0.6520 | 0.6897 | 0.0133 | 0.1133 | 0.1505 | 0.2489 |
 | Best fusion | leave_out_ghostbuster | ensemble_fusion | 0.6974 | 0.6628 | 0.6833 | 0.0200 | 0.0933 | 0.1451 | 0.2443 |
+| Strict Text-Koopman loss-update best overall | leave_out_ghostbuster | full_plus_transition_plus_strict_koopman / recon_only rank16 | 0.7120 | 0.6860 | 0.6789 | 0.0133 | 0.1400 | 0.1796 | 0.2569 |
+| Strict Text-Koopman loss-update best low-FPR | leave_out_ghostbuster | full_plus_transition_plus_strict_koopman / recon_lin rank32 | 0.6577 | 0.6564 | 0.6619 | 0.0133 | 0.2067 | 0.1799 | 0.2656 |
 
 Interpretation:
 
 - The full Deep DMD sweep was completed successfully, but Deep DMD is not selected as the main method.
 - Best fusion has `best_model=alpha=1.00`, i.e. `alpha=1.00`. This means the fusion effectively selects the transition-side score rather than demonstrating stable additional Deep DMD gain.
 - `full + transition + Deep DMD` improves F1 and TPR@FPR=5% in one comparison, but it does not beat the selected transition model on AUROC/AUPRC and is less stable as a main result.
-- The final selected main model remains `leave_out_ghostbuster + full_plus_1_5b_and_7b_transition`.
+- The current best external result is the strict Text-Koopman loss-update
+  `recon_only/rank16` combined-feature row. This is an ablation result: the
+  explicit dynamics-loss variants did not beat it on AUROC/AUPRC.
 
-Recommendation: present Deep DMD as a rigorous controlled secondary / negative experiment. It verifies that a learnable Koopman encoder was implemented and evaluated, but the simpler transition-state profiling remains the main method.
+Recommendation: present Deep DMD as a rigorous controlled secondary / negative
+experiment. Present strict Text-Koopman loss update as the current best external
+row, with the caveat that the best row is `recon_only/rank16` and `L_multi` did
+not add a further gain.
 ## Deep DMD Cross-Source Matrix
 
 Purpose: test whether Deep DMD is weak only on `all_samples`, or also weaker under public source-to-source transfer.
@@ -343,4 +389,8 @@ Generalization gap summary:
 | leave_out_m4 | deep_dmd_best_available |  | 0.9455 | 0.4843 |  | 0.4611 |
 | m4 | deep_dmd_best_available | 0.9949 | 0.9264 | 0.6708 | 0.3242 | 0.2556 |
 
-Interpretation: Deep DMD is strong on many public same-source and public cross-source tests, but it does not clearly reduce the `all_samples` target shift. The earlier conclusion is refined: Deep DMD should not be described as simply useless; it is complementary, but transition-state profiling remains the selected main method.
+Interpretation: Deep DMD is strong on many public same-source and public
+cross-source tests, but it does not clearly reduce the `all_samples` target
+shift. The earlier conclusion is refined: Deep DMD should not be described as
+simply useless; it is complementary. The later strict Text-Koopman loss-update
+ablation produced the current best external combined-feature row.

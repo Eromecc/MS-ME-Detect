@@ -1,6 +1,6 @@
 # Strict Mathematical Text-Koopman Leakage Audit
 
-Created at: 2026-05-17T04:14:42.416245+00:00
+Created at: 2026-05-17T16:09:17.122279+00:00
 
 - audit_passed: `True`
 - hidden_size: `1536`

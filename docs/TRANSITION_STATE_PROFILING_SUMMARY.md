@@ -2,8 +2,8 @@
 
 ## Final Selection
 
-Transition-state profiling remains the selected main method for the GitHub
-release.  The strongest external `all_samples` configuration is:
+Transition-state profiling is the previous selected main method for the GitHub
+release.  The strongest transition-only external `all_samples` configuration is:
 
 ```text
 leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
@@ -15,11 +15,27 @@ ECE 0.1488
 Brier 0.2459
 ```
 
-Deep DMD and strict mathematical Text-Koopman were implemented and evaluated,
-but neither replaces transition-state profiling as the main method on
-AUROC/AUPRC.  Strict mathematical Text-Koopman improves some low-FPR small
-validation settings when combined with full/transition features, but remains
-below the selected transition model on AUROC/AUPRC.
+Deep DMD and strict mathematical Text-Koopman were implemented and evaluated.
+The strict Text-Koopman loss-update ablation later produced a new best external
+combined-feature result:
+
+```text
+full_plus_transition_plus_strict_koopman
+loss_mode = recon_only
+dmd_rank = 16
+AUROC 0.7120
+AUPRC 0.6860
+F1 0.6789
+TPR@FPR5% 0.1400
+ECE 0.1796
+Brier 0.2569
+```
+
+This should be reported as a strict Text-Koopman ablation result, not as a
+transition-only result. The best low-FPR loss-update row was
+`recon_lin/rank32`, with TPR@FPR5% `0.2067` but lower AUROC/AUPRC
+(`0.6577/0.6564`). `L_lin` helps low-FPR recall, while `L_multi` did not show a
+further gain.
 
 ## Motivation
 
@@ -96,9 +112,10 @@ Best Deep DMD-related all_samples comparisons:
 
 The best fusion row used `alpha=1.00`, so it effectively selected the transition-side score. Deep DMD is therefore documented as an implemented but non-selected secondary experiment.
 
-## Final Selected Main Model
+## Previous Transition Reference
 
-`leave_out_ghostbuster + full_plus_1_5b_and_7b_transition` remains the final selected main model:
+`leave_out_ghostbuster + full_plus_1_5b_and_7b_transition` remains the previous
+transition reference:
 
 | Metric | Value |
 |---|---:|

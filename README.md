@@ -18,15 +18,18 @@ Current conclusions:
 - `all_samples` is a strongly shifted external target set.
 - Ghostbuster shows probability direction reversal on `all_samples`.
 - Scale-response improves over basic/probability-only baselines.
-- The selected main method is 1.5B+7B transition-state profiling.
+- The previous selected main method was 1.5B+7B transition-state profiling.
 - Deep DMD was fully implemented and evaluated, but did not consistently
   outperform transition-state profiling.
 - Strict mathematical Text-Koopman was implemented using Qwen hidden states,
   learned lifting, per-document local `K_i`, and a spectral-only classifier. It
-  validates the theoretical pipeline but does not outperform the current
-  transition main model on AUROC/AUPRC.
+  validates the theoretical pipeline.
+- The strict Text-Koopman loss-update ablation produced a new best external
+  `all_samples` result when strict spectral features are combined with
+  full+transition features, but the best row is the `recon_only/rank16`
+  ablation rather than `recon_lin_multi`.
 
-Current best main model:
+Previous transition reference:
 
 ```text
 leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
@@ -36,6 +39,36 @@ F1 0.6799
 TPR@FPR=5% 0.0933
 ECE 0.1488
 Brier 0.2459
+```
+
+Current best external result after strict Text-Koopman loss update:
+
+```text
+leave_out_ghostbuster + qwen25_1_5b strict Text-Koopman
+feature_set = full_plus_transition_plus_strict_koopman
+loss_mode = recon_only
+dmd_rank = 16
+classifier = RandomForest
+n_features = 805
+AUROC 0.7120
+AUPRC 0.6860
+F1 0.6789
+TPR@FPR=1% 0.0133
+TPR@FPR=5% 0.1400
+ECE 0.1796
+Brier 0.2569
+MCC 0.1580
+```
+
+Best low-FPR strict loss-update row:
+
+```text
+loss_mode = recon_lin
+dmd_rank = 32
+feature_set = full_plus_transition_plus_strict_koopman
+AUROC 0.6577
+AUPRC 0.6564
+TPR@FPR=5% 0.2067
 ```
 
 Strict mathematical Text-Koopman small validation:
@@ -52,8 +85,14 @@ leakage audit passed
 spectral-only AUROC ~= 0.52-0.54
 ```
 
-`full+transition+strict Text-Koopman` improves TPR@FPR5% in small validation,
-but does not beat transition-state profiling on AUROC/AUPRC.
+The loss update clarified the strict training objective. The original strict
+math training was not completely reconstruction-only, but its DMD/multistep
+implementation had an unsafe silent-zero dynamics fallback risk. The updated
+runner exposes `recon_only`, `recon_lin`, and `recon_lin_multi`; gradients from
+`L_lin` and `L_multi` flow back to `Z/g_theta`; there is still no global shared
+`K`, pooled-z classifier, or label loss, and the leakage audit passed. `L_lin`
+helps low-FPR behavior, while `L_multi` did not show further gain in the full
+ablation.
 
 Key directories:
 
@@ -95,7 +134,7 @@ This repository now includes the code and curated summaries for the full experim
 - DMD-lite / Koopman-inspired spectral profiling
 - full Deep DMD encoder sweep and Deep DMD cross-source matrix
 
-The current selected main model is:
+The previous transition reference is:
 
 `leave_out_ghostbuster + full_plus_1_5b_and_7b_transition`
 
@@ -111,7 +150,26 @@ External `all_samples` result:
 | ECE | 0.1488 |
 | Brier | 0.2459 |
 
-The strongest conclusion is not that Deep DMD is useless. Deep DMD has public-source transfer signal, but it does not solve the stronger `all_samples` shift. Transition-state profiling remains the selected main method because it is more robust under the current non-leaky validation.
+The current best external `all_samples` result is the strict Text-Koopman
+loss-update combined-feature row:
+
+`leave_out_ghostbuster + full_plus_transition_plus_strict_koopman + recon_only/rank16`
+
+| Metric | Value |
+|---|---:|
+| AUROC | 0.7120 |
+| AUPRC | 0.6860 |
+| F1 | 0.6789 |
+| TPR@FPR=1% | 0.0133 |
+| TPR@FPR=5% | 0.1400 |
+| ECE | 0.1796 |
+| Brier | 0.2569 |
+
+The strongest conclusion is not that Deep DMD is useless. Deep DMD has
+public-source transfer signal, but it does not solve the stronger `all_samples`
+shift. The strict Text-Koopman loss update produces the current best external
+row, while transition-state profiling remains the previous practical reference
+baseline.
 
 Start here for a compact research summary:
 

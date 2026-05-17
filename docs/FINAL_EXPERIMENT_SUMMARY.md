@@ -41,7 +41,7 @@ ECE 0.1488
 Brier 0.2459
 ```
 
-This remains the main model for the current release.
+This is the previous transition reference for the current release.
 
 ## Koopman / DMD-Lite
 
@@ -84,14 +84,59 @@ spectral-only downstream classifier
 leakage audit passed
 ```
 
-The spectral-only strict model reaches roughly AUROC 0.52-0.54 on
-`all_samples` in small validation.  Combining full/transition features with
-strict Text-Koopman improves TPR@FPR5% in small validation, but does not beat
-the transition-state profiling main model on AUROC/AUPRC.
+The strict Text-Koopman loss-update ablation was completed after the original
+strict-math validation. The original strict math training was not completely
+reconstruction-only, but its DMD/multistep implementation was not explicit
+enough and could silently zero dynamics terms on DMD failure. The updated
+training objective exposes three loss modes:
+
+```text
+recon_only
+recon_lin
+recon_lin_multi
+```
+
+`L_lin` and `L_multi` are differentiable through the per-document local
+`K_tilde_i` and back to `Z/g_theta`. The strict pipeline still has no global
+shared `K`, no pooled-z classifier, and no label classification loss. The
+leakage audit passed.
+
+The full loss-update ablation produced a new best external `all_samples` row:
+
+```text
+feature_set = full_plus_transition_plus_strict_koopman
+loss_mode = recon_only
+dmd_rank = 16
+AUROC 0.7120
+AUPRC 0.6860
+F1 0.6789
+TPR@FPR5% 0.1400
+ECE 0.1796
+Brier 0.2569
+```
+
+The best low-FPR row was:
+
+```text
+loss_mode = recon_lin
+dmd_rank = 32
+AUROC 0.6577
+AUPRC 0.6564
+TPR@FPR5% 0.2067
+```
+
+This means the current best external result is a strict Text-Koopman
+loss-update combined-feature row, but the gain must be reported as an ablation
+finding: the best overall row is `recon_only/rank16`, not `recon_lin_multi`.
+`L_lin` helps low-FPR recall, while `L_multi` did not show an additional
+benefit in this run.
 
 ## Final Selected Method
 
-Transition-state profiling remains the selected main method for this release.
+For the final result table, the strict Text-Koopman loss-update
+`recon_only/rank16` combined-feature row is the current best external
+`all_samples` result. Transition-state profiling remains the previous best
+reference and the practical baseline that the loss update compares against.
 
 ## Remaining Limitation
 
