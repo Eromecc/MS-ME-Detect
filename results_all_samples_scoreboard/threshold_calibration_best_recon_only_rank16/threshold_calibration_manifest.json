@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-18T00:16:30.176417+00:00",
+  "leakage_policy": "thresholds_and_calibrators_fit_on_public_dev_only_all_samples_transfer_eval_only",
+  "dev_predictions": [
+    "results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_m4_test/predictions.csv",
+    "results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_ghostbuster_test/predictions.csv",
+    "results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_hc3_plus_test/predictions.csv"
+  ],
+  "all_samples_predictions": "results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_all_samples/predictions.csv",
+  "n_dev": 2901,
+  "n_all_samples": 300
+}

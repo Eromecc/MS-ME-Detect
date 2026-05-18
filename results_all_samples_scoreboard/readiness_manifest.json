@@ -1,0 +1,16 @@
+{
+  "created_at": "2026-05-18T00:16:22.025556+00:00",
+  "metadata_csv": "data/test/all_samples_prepared.csv",
+  "feature_files": [
+    "features_external/all_samples_full_allfeatures/all_features.csv",
+    "features_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256/all_samples_strict_koopman_features.csv"
+  ],
+  "checkpoint_dirs": [
+    "checkpoints_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256"
+  ],
+  "rows": 304,
+  "has_labels": true,
+  "numeric_feature_candidates": 350,
+  "dry_run": true,
+  "leakage_policy": "all_samples is evaluated only after checkpoint/model/feature family selection."
+}

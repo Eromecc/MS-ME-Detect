@@ -66,3 +66,64 @@ Estimated cost: moderate if missing checkpoints must be trained; low if checkpoi
 Large model inference: no. It reuses token-loss caches and does not run Qwen probability or scale-response.
 
 Safe to rerun: yes, with `--reuse_existing_checkpoints --run_missing_only`; it writes only the cross-source Deep DMD output directories.
+
+## all_samples External Scoreboard
+
+Purpose: evaluate already-selected checkpoints on `all_samples` without using
+`all_samples` for training, feature selection, threshold selection, calibration,
+or model selection.
+
+Readiness check:
+
+```bash
+python scripts/run_all_samples_external_scoreboard.py \
+  --dry_run \
+  --checkpoint_dirs checkpoints_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256 \
+  --feature_files \
+    features_external/all_samples_full_allfeatures/all_features.csv \
+    features_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256/all_samples_strict_koopman_features.csv \
+  --output_dir results_all_samples_scoreboard
+```
+
+Trusted local full checkpoint evaluation:
+
+```bash
+python scripts/run_all_samples_external_scoreboard.py \
+  --checkpoint_dirs checkpoints_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256 \
+  --classifier_files full_plus_transition_plus_strict_koopman_classifier.joblib \
+  --feature_files \
+    features_external/all_samples_full_allfeatures/all_features.csv \
+    features_text_koopman_strict_math/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256/all_samples_strict_koopman_features.csv \
+  --output_dir results_all_samples_scoreboard \
+  --bootstrap_samples 1000 \
+  --seed 42
+```
+
+Safe curation from existing predictions, used when checkpoint pickle loading is
+not allowed:
+
+```bash
+python scripts/run_all_samples_external_scoreboard.py \
+  --predictions_csv results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_all_samples/predictions.csv \
+  --scoreboard_name leave_out_ghostbuster_recon_only_rank16_full_plus_transition_plus_strict_koopman \
+  --output_dir results_all_samples_scoreboard \
+  --bootstrap_samples 1000 \
+  --seed 42
+```
+
+Dev-only threshold/calibration transfer:
+
+```bash
+python scripts/run_threshold_calibration_dev_only.py \
+  --dev_predictions \
+    results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_m4_test/predictions.csv \
+    results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_ghostbuster_test/predictions.csv \
+    results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_hc3_plus_test/predictions.csv \
+  --all_samples_predictions results_text_koopman_strict_math/loss_update/leave_out_ghostbuster_qwen25_1_5b_recon_only_hidden_to_obs3072_rank16_len256_full_plus_transition_plus_strict_koopman_to_all_samples/predictions.csv \
+  --output_dir results_all_samples_scoreboard/threshold_calibration_best_recon_only_rank16
+```
+
+The full checkpoint command loads `.joblib` files. Run it only in a trusted
+local environment. The generated GitHub-safe summaries are under
+`results_all_samples_scoreboard/`; raw text, generated features, hidden states,
+token-loss caches, checkpoints, and model weights remain excluded.

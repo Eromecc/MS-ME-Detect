@@ -87,6 +87,9 @@ results_targeted/
 results_transition/
 results_text_koopman/
 results_text_koopman_strict_math/
+results_all_samples_scoreboard/
+!results_all_samples_scoreboard/
+!results_all_samples_scoreboard/**
 results_curated/
 !results_curated/
 !results_curated/**
