@@ -1,0 +1,17 @@
+requirement,passed,evidence
+uses_hidden_states_not_loss_only,True,Input records are Qwen hidden_states from features_hidden_states.
+hidden_size_from_config,True,Hidden manifest and checkpoint metadata agree.
+no_raw_token_string_saved,True,Cache stores id/text_hash/hidden_states metadata only.
+no_raw_token_id_saved,True,Cache records do not include token ids.
+no_raw_text_saved,True,Cache records do not include raw text.
+hidden_states_direct_to_lifting,True,No PCA/random/128-256 projection is used.
+observable_dim_gt_hidden_size,True,Observable dimension must exceed hidden size.
+no_global_shared_K,True,K_tilde is estimated per document after lifting.
+per_document_local_K_i,True,Feature extraction calls local exact DMD independently for each record.
+classifier_spectral_residual_scalars_only,True,Selected classifier features must be strict_koopman_* only.
+no_pooled_hidden_z_cls,True,Banned pooled/CLS/token feature names are absent.
+all_samples_external_only,True,all_samples is never used for train/dev/model selection.
+no_label_classification_loss,True,Training objective is unsupervised reconstruction/local-DMD.
+early_stopping_no_all_samples,True,Checkpoint selection uses dev unsupervised loss only.
+truncated_exact_dmd_not_dense_inverse,True,DMD uses SVD-truncated K_tilde with rank dmd_rank.
+strict_math_failed_due_to_memory,True,False means the strict path completed without memory downgrade.

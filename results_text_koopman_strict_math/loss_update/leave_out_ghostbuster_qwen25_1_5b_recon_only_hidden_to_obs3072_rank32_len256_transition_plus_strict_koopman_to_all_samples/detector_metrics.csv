@@ -1,0 +1,2 @@
+positive_class_rate,mean_ai_probability_human,mean_ai_probability_ai,auroc,auprc,accuracy,balanced_accuracy,precision,recall,tpr,specificity,tnr,f1,mcc,fpr,fnr,tpr_at_fpr_1pct,tpr_at_fpr_5pct,tpr_at_fpr_10pct,fpr_at_tpr_90pct,fpr_at_tpr_95pct,brier_score,expected_calibration_error,ECE,log_loss
+0.5,0.9541111111111111,0.953288888888889,0.4755333333333333,0.4804413438143951,0.5,0.5,0.5,1.0,1.0,0.0,0.0,0.6666666666666666,0.0,1.0,0.0,0.006666666666666667,0.02,0.06,0.9333333333333333,0.9733333333333334,0.4574136666666667,0.45370000000000005,0.45370000000000005,1.6697077487886858

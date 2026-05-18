@@ -38,10 +38,17 @@
 
 ## all_samples External Scoreboard Artifacts
 
-Included:
+### Public-Safe Artifacts
+
+These are suitable for a public-safe release because they are aggregate
+summaries, reproducibility material, or code:
 
 - `scripts/run_all_samples_external_scoreboard.py`
 - `scripts/run_threshold_calibration_dev_only.py`
+- `src/predict.py`
+- `PROJECT_STATE.md`
+- `docs/GITHUB_ARTIFACT_MANIFEST.md`
+- `docs/REPRODUCIBILITY_COMMANDS.md`
 - `results_all_samples_scoreboard/model_family_comparison.csv`
 - `results_all_samples_scoreboard/model_family_comparison.md`
 - `results_all_samples_scoreboard/*/detector_metrics.csv`
@@ -50,8 +57,29 @@ Included:
 - `results_all_samples_scoreboard/*/pr_curve.csv`
 - `results_all_samples_scoreboard/*/calibration_bins.csv`
 - `results_all_samples_scoreboard/*/subgroup_metrics.csv`
-- `results_all_samples_scoreboard/*/error_analysis.csv`
 - `results_all_samples_scoreboard/*/*manifest.json`
+- `results_text_koopman_strict_math/loss_update/*summary.csv`
+- `results_text_koopman_strict_math/loss_update/*comparison.csv`
+- `results_text_koopman_strict_math/loss_update/*REPORT.md`
+- `results_text_koopman_strict_math/loss_update/*manifest.json`
+
+### Internal-Only Uploaded Artifacts
+
+These internal-only artifacts may contain sample IDs, labels, and model scores
+derived from the external all_samples evaluation set. They are intended for
+private/internal collaboration and should not be published in a public release.
+
+- `results_all_samples_scoreboard/*/predictions.csv`
+- `results_all_samples_scoreboard/*/error_analysis.csv`
+- `results_all_samples_scoreboard/threshold_calibration_*/*.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/predictions.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/detector_metrics.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/metrics.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/roc_curve.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/pr_curve.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/calibration_bins.csv`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/classification_report.txt`
+- `results_text_koopman_strict_math/loss_update/*_to_all_samples/*.png`
 
 Excluded:
 
@@ -61,6 +89,8 @@ Excluded:
 - `checkpoints_text_koopman_strict_math/**/*.joblib`
 - `checkpoints_text_koopman_strict_math/**/*.pt`
 - token-loss caches, hidden-state caches, model downloads, and full feature matrices
+- `results_text_koopman_strict_math/loss_update/full_ablation_resume.log`
+- `results_text_koopman_strict_math/loss_update/loss_update_manifest.partial.json`
 
 Regeneration requires the private/generated artifacts above. The safe command
 sequence is recorded in `docs/REPRODUCIBILITY_COMMANDS.md`. The scoreboard script

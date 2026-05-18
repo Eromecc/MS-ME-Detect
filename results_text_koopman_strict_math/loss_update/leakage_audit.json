@@ -1,0 +1,24 @@
+{
+  "created_at": "2026-05-17T16:09:17.122279+00:00",
+  "passed": true,
+  "banned_feature_names": [],
+  "non_strict_feature_names": [],
+  "banned_terms": [
+    "pooled",
+    "hidden_mean",
+    "hidden_std",
+    "z_mean",
+    "z_std",
+    "cls",
+    "token_id",
+    "token_text",
+    "embedding_mean"
+  ],
+  "hidden_size": 1536,
+  "observable_dim": 3072,
+  "uses_projection": false,
+  "uses_global_K_parameter": false,
+  "uses_label_classifier": false,
+  "strict_math_failed_due_to_memory": false,
+  "checklist_csv": "/vepfs-mlp2/queue010/20252203113/MS-ME-Detect/results_text_koopman_strict_math/loss_update/strict_math_requirement_checklist.csv"
+}

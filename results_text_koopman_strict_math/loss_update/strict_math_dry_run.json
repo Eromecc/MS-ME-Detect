@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-05-17T08:30:45.241094+00:00",
+  "train_sources": [
+    "leave_out_ghostbuster"
+  ],
+  "test_sets": [
+    "all_samples",
+    "m4_test",
+    "ghostbuster_test",
+    "hc3_plus_test"
+  ],
+  "model": "qwen25_1_5b",
+  "needed_datasets": {
+    "m4_train": 50,
+    "m4_dev": 50,
+    "m4_test": 50,
+    "ghostbuster_train": 50,
+    "ghostbuster_dev": 50,
+    "ghostbuster_test": 50,
+    "hc3_plus_train": 50,
+    "hc3_plus_dev": 50,
+    "hc3_plus_test": 50,
+    "all_samples": 50
+  },
+  "hidden_size_from_manifest": 1536,
+  "observable_dim": 3072,
+  "loss_modes": [
+    "recon_lin_multi"
+  ],
+  "alpha_lin": 1.0,
+  "beta_multi": 0.5,
+  "multi_steps": [
+    2,
+    3
+  ],
+  "gpu_info": {
+    "cuda_available": true,
+    "cuda_device_count": 2,
+    "devices": [
+      "NVIDIA A100-SXM4-80GB",
+      "NVIDIA A100-SXM4-80GB"
+    ]
+  },
+  "strict_policy": "hidden_states directly enter g_theta; no PCA/random projection; downstream strict_koopman_* spectral features only."
+}
