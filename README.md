@@ -7,10 +7,11 @@ Multi-Scale Multi-Evidence Detection of LLM-generated Text.
 
 ## Current Fakespot-Like External Snapshot
 
-A newer local reproduction line uses frozen head/tail segment embedding features and validation-only incremental blending. The current best local external `all_samples` result is:
+The current local reproduction line is a validation-selected fusion of three complementary evidence families: token-level loss trajectory behavior, multi-scale response features, and frozen embedding-segment probes. The best local external `all_samples` result currently comes from adding Qwen2.5-14B head/tail segment evidence on top of the previous fused loss/scale/embedding-pool base:
 
 ```text
-Qwen2.5-14B head/tail segment features + previous embedding-pool best
+method = loss trajectory + scale response + embedding segment fusion
+final segment branch = Qwen2.5-14B head/tail segment probe
 selection = fakespot_like validation only
 external set = all_samples, evaluation only
 AUROC 0.907822
@@ -19,7 +20,7 @@ TPR@FPR<=5% 0.713333
 F1@0.5 0.838926
 ```
 
-See [docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md](docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md) for the data split, model list, commands, leakage policy, and GitHub upload boundary for this reproduction line.
+The main contribution is the evidence-fusion framework: loss trajectories capture token-level generation dynamics, scale response captures how model likelihood changes across model sizes, and embedding segments add complementary hidden-state geometry from the beginning and end of each text. See [docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md](docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md) for the data split, data-source provenance, model list, commands, leakage policy, and GitHub upload boundary for this reproduction line.
 
 MS-ME-Detect studies LLM-generated text detection with probability features,
 scale-response profiling, transition-state profiling, Koopman/DMD variants, and
