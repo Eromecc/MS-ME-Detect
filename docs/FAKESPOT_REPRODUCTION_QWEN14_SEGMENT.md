@@ -30,7 +30,84 @@ Training and validation use prepared Fakespot-like reproduction splits:
 
 `all_samples` is treated as an external target set. It is not used to train probes, choose candidate models, choose alpha weights, choose transforms, choose thresholds, calibrate models, or decide source weighting. All candidate and alpha selection is done on `fakespot_like_val.csv`.
 
-The public GitHub repo should not include the raw data CSVs above. They are local/private artifacts or generated datasets. The repo should include the scripts and this reproducibility description.
+The public GitHub repo documents the source and preparation path rather than committing the full raw text CSVs. The train CSV is about 304 MB, which is over GitHub's normal single-file limit, and the rows contain full text plus source metadata. Reproducers should rebuild or obtain the source datasets below and run the preparation command.
+
+## Data Source Provenance
+
+`fakespot_like` is a prepared reproduction split generated from:
+
+```text
+ai_text_detector_data_reproduction/dataset_fakespot_like/
+```
+
+Local source files:
+
+- `dataset_fakespot_like_train.csv`
+- `dataset_fakespot_like_val.csv`
+- `dataset_fakespot_like_full.csv`
+
+The prepared split preserves a unified schema:
+
+```text
+id,text,label,source_dataset,language,domain,generator,source,split,extra_metadata,text_hash
+```
+
+Labels are normalized to `0 = human` and `1 = AI`. Text is whitespace-normalized and hashed with SHA-256 into `text_hash`. The manifest records zero normalized-text overlap between train, validation, and `all_samples`.
+
+The main source mixture for `fakespot_like_train.csv` is:
+
+| source | rows |
+|---|---:|
+| human-ai-parallel-corpus | 44,892 |
+| HC3 | 42,273 |
+| RAID | 24,212 |
+| Claude-3-Opus-Instruct-15K | 12,262 |
+| human_ai_generated_text | 8,823 |
+| Human-Style-Answers | 152 |
+
+The main source mixture for `fakespot_like_val.csv` is:
+
+| source | rows |
+|---|---:|
+| human-ai-parallel-corpus | 5,105 |
+| HC3 | 4,763 |
+| RAID | 2,676 |
+| Claude-3-Opus-Instruct-15K | 1,390 |
+| human_ai_generated_text | 990 |
+| Human-Style-Answers | 8 |
+
+The external `all_samples` set is prepared from:
+
+```text
+data/test/all_samples.json
+```
+
+using:
+
+```bash
+python scripts/prepare_external_test.py \
+  --input data/test/all_samples.json \
+  --output data/test/all_samples_prepared.csv
+```
+
+It is converted to:
+
+```text
+id,text,label,source_dataset,language,domain,generator,attack_type,split
+```
+
+with `source_dataset=external_all_samples`, `split=external_test`, empty texts removed, exact duplicate texts removed, and labels normalized to `0/1`.
+
+The prepared Fakespot-like splits are generated with:
+
+```bash
+python scripts/prepare_reproduction_datasets_for_msmedetect.py \
+  --fakespot_dir ai_text_detector_data_reproduction/dataset_fakespot_like \
+  --external_test data/test/all_samples_prepared.csv \
+  --output_dir data/reproduction_datasets
+```
+
+If the source data cannot be redistributed in the repository, this provenance section is the intended replacement for committing the full CSVs.
 
 ## Model And Feature Framework
 
