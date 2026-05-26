@@ -106,3 +106,29 @@ intermediate caches, are reproducible from scripts, or are not appropriate for
 ordinary GitHub storage.  The repository should contain enough code, commands,
 curated tables, and clean figures for review without shipping raw datasets or
 large model-derived caches.
+## Fakespot-Like Segment Embedding Line
+
+Public-safe additions for the current 0.907822 AUROC local reproduction line:
+
+- `docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md`
+- `scripts/build_embedding_pool_features.py`
+- `scripts/build_embedding_segment_features.py`
+- `scripts/train_clean_probe_from_features.py`
+- `scripts/incremental_blend_with_probe.py`
+- `scripts/combine_feature_roots.py`
+- `scripts/run_embedding_segment_multiseed_pipeline.sh`
+- `scripts/run_embedding_segment_extra_followup.sh`
+- `scripts/run_embedding_segment_llama_followup.sh`
+- `scripts/run_embedding_segment_qwen7_followup.sh`
+
+Internal-only artifacts for this line:
+
+- `data/reproduction_datasets/*.csv`
+- `data/test/all_samples_prepared.csv`
+- `features_embedding_*` directories and `all_features.csv` matrices
+- `results_embedding_segment_*` full prediction outputs
+- `results_incremental_*` full prediction outputs
+- downloaded model weights under local `models/`
+
+Only aggregate metrics and method descriptions should be published unless the data owner explicitly approves publishing IDs, text, labels, and per-sample scores.
+

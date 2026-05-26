@@ -4,6 +4,23 @@ Multi-Scale Multi-Evidence Detection of LLM-generated Text.
 
 ## GitHub Release Summary
 
+
+## Current Fakespot-Like External Snapshot
+
+A newer local reproduction line uses frozen head/tail segment embedding features and validation-only incremental blending. The current best local external `all_samples` result is:
+
+```text
+Qwen2.5-14B head/tail segment features + previous embedding-pool best
+selection = fakespot_like validation only
+external set = all_samples, evaluation only
+AUROC 0.907822
+AUPRC 0.926497
+TPR@FPR<=5% 0.713333
+F1@0.5 0.838926
+```
+
+See [docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md](docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md) for the data split, model list, commands, leakage policy, and GitHub upload boundary for this reproduction line.
+
 MS-ME-Detect studies LLM-generated text detection with probability features,
 scale-response profiling, transition-state profiling, Koopman/DMD variants, and
 strict Text-Koopman spectral fingerprints.  The repository is organized for
