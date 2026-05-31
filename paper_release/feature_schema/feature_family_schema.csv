@@ -1,0 +1,7 @@
+feature_family,description,input_model_or_source,used_in_final_model,heavy_artifact_required_for_reproduction,notes
+surface_style,"Surface statistics such as length, punctuation, repetition, and structure",deterministic_text_features,false,false,"Historical/framework-level baseline; not named as a final paper evidence family"
+probability_perplexity,"Single-model probability and perplexity summaries",Qwen2.5 base probability features,false,true,"Historical/framework-level evidence; final paper description emphasizes loss trajectory, scale response, embedding-pool/base, and Qwen14 segment fusion"
+scale_response,"Multi-scale response of probability/loss behavior across model scales",Qwen2.5 scale-response features,true,true,"Final base evidence family; generated locally from model-derived features"
+loss_dynamics,"Token-level loss trajectory behavior and derived dynamics summaries",token-loss-derived local features,true,true,"Final base evidence family; token-loss caches are excluded from release"
+embedding_pool,"Document-level pooled embedding evidence used in no-segment base",DeBERTa/RoBERTa pooled representation features,true,true,"Used in the no-segment base branch; embedding matrices/full feature matrices are excluded"
+qwen14_head_tail_segment,"Frozen Qwen2.5-14B head/tail segment representation geometry and projections",Qwen2.5-14B frozen hidden states,true,true,"Final segment branch; hidden states, embeddings, and full feature matrices are excluded"

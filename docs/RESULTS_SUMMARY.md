@@ -1,3 +1,5 @@
+> Historical note: this document predates or discusses experiments before the current Qwen14 segment fusion paper release. The current paper final model is `MS-ME-Detect Qwen14 segment fusion` with AUROC 0.907822 on `all_samples`, documented in `paper_release/README_paper_release.md`. Text-Koopman, Deep DMD, transition-only, and 0.6951/0.7120 rows in this file are historical/exploratory unless explicitly restated as the Qwen14 final model.
+
 # Results Summary
 
 ## Final Release Summary
@@ -347,12 +349,12 @@ Interpretation:
 - The full Deep DMD sweep was completed successfully, but Deep DMD is not selected as the main method.
 - Best fusion has `best_model=alpha=1.00`, i.e. `alpha=1.00`. This means the fusion effectively selects the transition-side score rather than demonstrating stable additional Deep DMD gain.
 - `full + transition + Deep DMD` improves F1 and TPR@FPR=5% in one comparison, but it does not beat the selected transition model on AUROC/AUPRC and is less stable as a main result.
-- The current best external result is the strict Text-Koopman loss-update
+- The historical best external result within the strict Text-Koopman experiment line was the strict Text-Koopman loss-update
   `recon_only/rank16` combined-feature row. This is an ablation result: the
   explicit dynamics-loss variants did not beat it on AUROC/AUPRC.
 
 Recommendation: present Deep DMD as a rigorous controlled secondary / negative
-experiment. Present strict Text-Koopman loss update as the current best external
+experiment. Present strict Text-Koopman loss update as a historical/exploratory external
 row, with the caveat that the best row is `recon_only/rank16` and `L_multi` did
 not add a further gain.
 ## Deep DMD Cross-Source Matrix
@@ -393,4 +395,4 @@ Interpretation: Deep DMD is strong on many public same-source and public
 cross-source tests, but it does not clearly reduce the `all_samples` target
 shift. The earlier conclusion is refined: Deep DMD should not be described as
 simply useless; it is complementary. The later strict Text-Koopman loss-update
-ablation produced the current best external combined-feature row.
+ablation produced the historical best external combined-feature row within that experiment line.

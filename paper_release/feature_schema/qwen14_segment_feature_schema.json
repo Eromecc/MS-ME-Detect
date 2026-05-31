@@ -1,0 +1,30 @@
+{
+  "backbone": "Qwen2.5-14B",
+  "frozen": true,
+  "finetuned_lm": false,
+  "windows": ["head", "tail"],
+  "window_max_length_tokens": 256,
+  "pooling": ["first_token", "mask_aware_mean"],
+  "scalar_summaries": ["norm", "cosine_similarity", "l2_distance"],
+  "random_projection": {
+    "enabled": true,
+    "projection_dim_per_pool_per_seed": 64,
+    "fixed_seeds": [20260525, 20260526, 20260527]
+  },
+  "feature_count": {
+    "total": 776,
+    "random_projection_dimensions": 768,
+    "scalar_geometry_summaries": 8,
+    "head_window_features": 387,
+    "tail_window_features": 387,
+    "head_tail_scalar_geometry": 2
+  },
+  "not_uploaded": [
+    "hidden states",
+    "embedding matrices",
+    "full feature matrices",
+    "projection matrix if too large",
+    "model weights"
+  ],
+  "rationale": "Document-level head/tail representation geometry supplies complementary frozen-backbone evidence for external ranking without LLM fine-tuning."
+}

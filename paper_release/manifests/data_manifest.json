@@ -1,0 +1,29 @@
+{
+  "train_rows": 132614,
+  "dev_rows": 14932,
+  "external_all_samples_rows": 300,
+  "label_balance_external": {
+    "status": "balanced",
+    "human_label_0": 150,
+    "ai_label_1": 150
+  },
+  "raw_data_included": false,
+  "text_hashing_policy": "sha256 over whitespace-normalized text",
+  "overlap_policy": "documented zero normalized-text overlap across train, validation, and all_samples",
+  "data_source_notes": {
+    "fakespot_like_sources_documented": [
+      "human-ai-parallel-corpus",
+      "HC3",
+      "RAID",
+      "Claude-3-Opus-Instruct-15K",
+      "human_ai_generated_text",
+      "Human-Style-Answers"
+    ],
+    "external_source": "data/test/all_samples.json converted locally to all_samples_prepared.csv",
+    "raw_source_files_included": false
+  },
+  "source_documents": [
+    "docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md",
+    "docs/FINAL_FUSION_MODEL_SPEC.md"
+  ]
+}

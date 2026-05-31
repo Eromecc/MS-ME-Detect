@@ -1,3 +1,5 @@
+> Historical note: this document predates or discusses experiments before the current Qwen14 segment fusion paper release. The current paper final model is `MS-ME-Detect Qwen14 segment fusion` with AUROC 0.907822 on `all_samples`, documented in `paper_release/README_paper_release.md`. Text-Koopman, Deep DMD, transition-only, and 0.6951/0.7120 rows in this file are historical/exploratory unless explicitly restated as the Qwen14 final model.
+
 # Final Experiment Summary
 
 ## Baselines
@@ -125,7 +127,7 @@ AUPRC 0.6564
 TPR@FPR5% 0.2067
 ```
 
-This means the current best external result is a strict Text-Koopman
+This means the historical best external result within that experiment line was a strict Text-Koopman
 loss-update combined-feature row, but the gain must be reported as an ablation
 finding: the best overall row is `recon_only/rank16`, not `recon_lin_multi`.
 `L_lin` helps low-FPR recall, while `L_multi` did not show an additional
@@ -134,7 +136,7 @@ benefit in this run.
 ## Final Selected Method
 
 For the final result table, the strict Text-Koopman loss-update
-`recon_only/rank16` combined-feature row is the current best external
+`recon_only/rank16` combined-feature row was the historical best external within that experiment line
 `all_samples` result. Transition-state profiling remains the previous best
 reference and the practical baseline that the loss update compares against.
 

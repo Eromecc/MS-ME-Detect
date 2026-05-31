@@ -1,0 +1,10 @@
+variant,source,candidate,auroc,auprc,f1,tpr_at_fpr_le_5,notes
+no_segment_base,previous_fused_base,embedding_pool_probe__hgb_l2__raw,0.8992888888888888,0.9187521410542472,0.7846153846153846,0.68,source: Figure/figure4/figure4_segment_ablation_table.csv
+qwen14_probe,standalone_selected_probe,embedding_segment_qwen14_probe__hgb_l2,0.6903555555555554,0.708130269378624,0.6604938271604939,0.20666666666666667,source: qwen14 probe selected table; not final
+qwen14_candidate,standalone_candidate,embedding_segment_qwen14_probe__sgd_a1e4,0.7722666666666668,0.7732279620513053,0.6494464944649446,0.3,source: qwen14 probe leaderboard; candidate used in final fusion
+final_fusion,previous_base_plus_qwen14_segment,embedding_segment_qwen14_probe__sgd_a1e4__rank,0.9078222222222222,0.9264971309481187,0.8389261744966443,0.7133333333333334,final paper model selected on validation only
+qwen32_segment_fusion,backbone_comparison,embedding_segment_qwen32_probe__hgb_l2__rank,0.8819111111111111,0.903221606219606,0.8108108108108109,0.68,not final
+qwen72_segment_fusion,backbone_comparison,embedding_segment_qwen72_probe__sgd_a3e5__rank,0.9029333333333334,0.9173806115688052,0.835016835016835,0.7133333333333334,not final
+scalar_only,TODO,TODO,TODO,TODO,TODO,TODO,source_missing: scalar-only probe metrics unavailable
+pooled_representation,TODO,TODO,TODO,TODO,TODO,TODO,source_missing: pooling-only ablation metrics unavailable
+projection_features,TODO,TODO,TODO,TODO,TODO,TODO,source_missing: random-projection on/off metrics unavailable

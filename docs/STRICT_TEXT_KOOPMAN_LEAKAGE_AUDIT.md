@@ -1,3 +1,5 @@
+> Historical note: this document predates or discusses experiments before the current Qwen14 segment fusion paper release. The current paper final model is `MS-ME-Detect Qwen14 segment fusion` with AUROC 0.907822 on `all_samples`, documented in `paper_release/README_paper_release.md`. Text-Koopman, Deep DMD, transition-only, and 0.6951/0.7120 rows in this file are historical/exploratory unless explicitly restated as the Qwen14 final model.
+
 # Strict Mathematical Text-Koopman Leakage Audit
 
 Created at: 2026-05-17T16:09:17.122279+00:00

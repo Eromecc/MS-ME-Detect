@@ -1,3 +1,5 @@
+> Historical note: this document predates or discusses experiments before the current Qwen14 segment fusion paper release. The current paper final model is `MS-ME-Detect Qwen14 segment fusion` with AUROC 0.907822 on `all_samples`, documented in `paper_release/README_paper_release.md`. Text-Koopman, Deep DMD, transition-only, and 0.6951/0.7120 rows in this file are historical/exploratory unless explicitly restated as the Qwen14 final model.
+
 # Strict Mathematical Text-Koopman
 
 This document defines the strict mathematical Text-Koopman experiment added as
@@ -184,7 +186,7 @@ TPR@FPR5% 0.2067
 
 Interpretation:
 
-- The current best external result is the strict loss-update combined-feature
+- The historical best external result within that experiment line is the strict loss-update combined-feature
   row `recon_only/rank16`, not `recon_lin_multi`.
 - `L_lin` helps some low-FPR settings, especially the `recon_lin/rank32`
   combined-feature row.

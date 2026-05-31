@@ -1,0 +1,56 @@
+paper_model_name: ms_me_detect_qwen14_segment_fusion
+model_status: final_paper_snapshot
+base_evidence:
+  - token_level_loss_trajectory
+  - multi_scale_response
+  - embedding_pool_or_base_evidence
+segment_branch:
+  backbone: Qwen2.5-14B
+  frozen_lm: true
+  finetuned_lm: false
+  windows:
+    - head
+    - tail
+  pooling:
+    - first_token
+    - mask_aware_mean
+  scalar_geometry:
+    - norm
+    - cosine_similarity
+    - l2_distance
+  projection_features: true
+  random_projection_seed_policy: fixed_seed_recorded
+fusion:
+  description: downstream fusion of no-segment base and Qwen14 segment evidence
+  selected_on: fakespot_like_validation_only
+  external_used_for_selection: false
+threshold:
+  default_threshold: 0.5
+external_benchmark:
+  name: all_samples
+  used_for_training: false
+  used_for_model_selection: false
+  used_for_threshold_selection: false
+reported_external_metrics:
+  auroc: 0.907822
+  auprc: 0.926497
+  tpr_at_fpr_le_5_percent: 0.713333
+  f1_at_0_5: 0.838926
+upload_boundary:
+  include:
+    - configs
+    - feature schemas
+    - small summary tables
+    - anonymous prediction scores if available
+    - figure source data
+    - manifests
+  exclude:
+    - raw datasets
+    - raw text
+    - model weights
+    - hidden-state caches
+    - token-loss caches
+    - embedding caches
+    - full feature matrices
+    - checkpoints
+    - local logs

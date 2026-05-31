@@ -1,0 +1,16 @@
+{
+  "external_used_for_training": false,
+  "external_used_for_model_selection": false,
+  "external_used_for_threshold_selection": false,
+  "validation_used_for_selection": true,
+  "selection_split": "fakespot_like validation",
+  "external_split": "all_samples",
+  "raw_text_overlap_check": {
+    "status": "documented",
+    "policy": "zero normalized-text overlap across train, validation, and all_samples",
+    "source_document": "docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md"
+  },
+  "candidate_alpha_selection": "candidate and alpha selected on validation only",
+  "threshold_policy": "fixed threshold 0.5 for reported thresholded metrics",
+  "calibration_policy": "no probability calibration in final model; ECE and Brier are diagnostic"
+}

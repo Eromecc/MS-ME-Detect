@@ -1,622 +1,94 @@
 # MS-ME-Detect
 
-Multi-Scale Multi-Evidence Detection of LLM-generated Text.
+MS-ME-Detect is a modular multi-evidence detector for LLM-generated text. The current paper-release model uses validation-selected score-level late fusion between a no-segment fused base score and a Qwen2.5-14B head/tail segment score.
 
-## GitHub Release Summary
+## Current Paper-Release Model
 
-
-## Current Fakespot-Like External Snapshot
-
-The current local reproduction line is a validation-selected fusion of three complementary evidence families: token-level loss trajectory behavior, multi-scale response features, and frozen embedding-segment probes. The best local external `all_samples` result currently comes from adding Qwen2.5-14B head/tail segment evidence on top of the previous fused loss/scale/embedding-pool base:
+Final score:
 
 ```text
-method = loss trajectory + scale response + embedding segment fusion
-final segment branch = Qwen2.5-14B head/tail segment probe
-selection = fakespot_like validation only
-external set = all_samples, evaluation only
-AUROC 0.907822
-AUPRC 0.926497
-TPR@FPR<=5% 0.713333
-F1@0.5 0.838926
+s_final = clip((1 - 0.108) * rank01(s_base) + 0.108 * rank01(s_qwen14_segment), 0, 1)
 ```
 
-The main contribution is the evidence-fusion framework: loss trajectories capture token-level generation dynamics, scale response captures how model likelihood changes across model sizes, and embedding segments add complementary hidden-state geometry from the beginning and end of each text. See [docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md](docs/FAKESPOT_REPRODUCTION_QWEN14_SEGMENT.md) for the data split, data-source provenance, model list, commands, leakage policy, and GitHub upload boundary for this reproduction line.
+The top-level final fusion uses two scores:
 
-MS-ME-Detect studies LLM-generated text detection with probability features,
-scale-response profiling, transition-state profiling, Koopman/DMD variants, and
-strict Text-Koopman spectral fingerprints.  The repository is organized for
-review: it includes source code, core experiment scripts, method notes,
-reproducibility commands, curated tables, and clean presentation figures.  It
-does not include raw datasets, model weights, hidden-state caches, token-loss
-caches, full feature matrices, or checkpoints.
+- no-segment fused base score
+- Qwen14 segment score: `embedding_segment_qwen14_probe__sgd_a1e4`
 
-Current conclusions:
+Fusion details:
 
-- Public benchmarks show strong in-domain and cross-source performance.
-- `all_samples` is a strongly shifted external target set.
-- Ghostbuster shows probability direction reversal on `all_samples`.
-- Scale-response improves over basic/probability-only baselines.
-- The previous selected main method was 1.5B+7B transition-state profiling.
-- Deep DMD was fully implemented and evaluated, but did not consistently
-  outperform transition-state profiling.
-- Strict mathematical Text-Koopman was implemented using Qwen hidden states,
-  learned lifting, per-document local `K_i`, and a spectral-only classifier. It
-  validates the theoretical pipeline.
-- The strict Text-Koopman loss-update ablation produced a new best external
-  `all_samples` result when strict spectral features are combined with
-  full+transition features, but the best row is the `recon_only/rank16`
-  ablation rather than `recon_lin_multi`.
+- transform: `rank01`
+- alpha: `0.108`
+- alpha/candidate selection: validation composite only
+- threshold: fixed `0.5`
+- external `all_samples`: final reporting only
 
-Previous transition reference:
+The external `all_samples` benchmark is not used for training, candidate selection, alpha selection, threshold tuning, or calibration.
 
-```text
-leave_out_ghostbuster + full_plus_1_5B_and_7B_transition
-AUROC 0.6951
-AUPRC 0.6592
-F1 0.6799
-TPR@FPR=5% 0.0933
-ECE 0.1488
-Brier 0.2459
-```
+External metrics:
 
-Current best external result after strict Text-Koopman loss update:
+- AUROC: `0.907822`
+- AUPRC: `0.926497`
+- TPR@FPR<=5%: `0.713333`
+- F1@0.5: `0.838926`
+- Accuracy@0.5: `0.840000`
+- MCC@0.5: `0.680060`
+- Brier: `0.131683`
+- ECE: `0.113796`
 
-```text
-leave_out_ghostbuster + qwen25_1_5b strict Text-Koopman
-feature_set = full_plus_transition_plus_strict_koopman
-loss_mode = recon_only
-dmd_rank = 16
-classifier = RandomForest
-n_features = 805
-AUROC 0.7120
-AUPRC 0.6860
-F1 0.6789
-TPR@FPR=1% 0.0133
-TPR@FPR=5% 0.1400
-ECE 0.1796
-Brier 0.2569
-MCC 0.1580
-```
+See:
 
-Best low-FPR strict loss-update row:
+- [paper_release/README_paper_release.md](paper_release/README_paper_release.md)
+- [docs/FINAL_FUSION_MODEL_SPEC.md](docs/FINAL_FUSION_MODEL_SPEC.md)
+- [docs/HISTORICAL_EXPERIMENTS.md](docs/HISTORICAL_EXPERIMENTS.md)
 
-```text
-loss_mode = recon_lin
-dmd_rank = 32
-feature_set = full_plus_transition_plus_strict_koopman
-AUROC 0.6577
-AUPRC 0.6564
-TPR@FPR=5% 0.2067
-```
+Historical Text-Koopman, Deep DMD, DMD-lite, and transition-only experiments are retained for provenance only and are not the final paper model.
 
-Strict mathematical Text-Koopman small validation:
+## What Is Included
 
-```text
-hidden_size = 1536
-observable_dim = 3072
-no PCA/random projection
-no pooled-z classifier
-no global shared K
-per-document local truncated exact-DMD K_i
-spectral-only downstream classifier
-leakage audit passed
-spectral-only AUROC ~= 0.52-0.54
-```
+This repository includes source code, experiment scripts, small result tables, documentation, release manifests, feature schemas, figure source data, and anonymous hash-only prediction scores when available.
 
-The loss update clarified the strict training objective. The original strict
-math training was not completely reconstruction-only, but its DMD/multistep
-implementation had an unsafe silent-zero dynamics fallback risk. The updated
-runner exposes `recon_only`, `recon_lin`, and `recon_lin_multi`; gradients from
-`L_lin` and `L_multi` flow back to `Z/g_theta`; there is still no global shared
-`K`, pooled-z classifier, or label loss, and the leakage audit passed. `L_lin`
-helps low-FPR behavior, while `L_multi` did not show further gain in the full
-ablation.
+The paper-release directory is designed for review: files are small, text-readable, and auditable without downloading model caches or raw datasets.
 
-Key directories:
+## What Is Not Included
 
-- `src/`: feature extraction, training, DMD/Koopman, Deep DMD, strict Text-Koopman code
-- `scripts/`: experiment orchestration and curation scripts
-- `docs/`: method notes, summaries, reproducibility commands, artifact manifest
-- `results_curated/`: small selected tables, manifests, and figures for GitHub
-- `results_presentation/figures_clean/`: clean PPT-ready figures
-- `project_inventory/`: small inventory reports
+The repository intentionally excludes:
 
-Quick reproducibility entry points:
+- raw datasets and raw text
+- model weights
+- hidden-state caches
+- token-loss caches
+- embedding caches and embedding matrices
+- full feature matrices
+- checkpoints
+- local logs and wandb outputs
+
+These files are large, may contain sensitive source data or model-derived caches, and are outside the GitHub review boundary.
+
+## Reproducibility Boundary
+
+Large artifacts must be regenerated locally from the documented scripts and manifests. The release snapshot provides small files for auditing reported metrics, feature families, selection boundaries, and figure source data.
+
+To recompute external metrics from the anonymous release predictions:
 
 ```bash
-python scripts/run_transition_profile_experiment.py --help
-python scripts/run_deep_dmd_experiment.py --help
-python scripts/run_text_koopman_strict_math_experiment.py --dry_run \
-  --train_sources leave_out_ghostbuster \
-  --model qwen25_1_5b \
-  --max_rows_per_split 50 \
-  --seed 42
+python paper_release/scripts/recompute_external_metrics.py \
+  --input paper_release/predictions_anonymous/all_samples_predictions_hash_only.csv
 ```
 
-Files intentionally not uploaded include `data/raw/`, large public/private data
-CSVs, `features_hidden_states/`, `features_token_loss/`, full feature matrices,
-transition formal caches, checkpoints, `*.joblib`, `*.pt`, `*.npz`,
-`*.jsonl.gz`, and local model weights.  These files are large, may contain raw
-data or model-derived caches, and can be regenerated by the scripts.
-
-## Current Research Snapshot
-
-This repository now includes the code and curated summaries for the full experimental line:
-
-- basic baseline
-- cleaned `full_allfeatures`
-- feature ablation and threshold/tuning experiments
-- source-to-source generalization matrix
-- all_samples diagnosis and M4-targeted training
-- transition-state profiling with Qwen2.5-1.5B and 7B token-loss trajectories
-- DMD-lite / Koopman-inspired spectral profiling
-- full Deep DMD encoder sweep and Deep DMD cross-source matrix
-
-The previous transition reference is:
-
-`leave_out_ghostbuster + full_plus_1_5b_and_7b_transition`
-
-External `all_samples` result:
-
-| Metric | Value |
-|---|---:|
-| AUROC | 0.6951 |
-| AUPRC | 0.6592 |
-| F1 | 0.6799 |
-| TPR@FPR=1% | 0.0200 |
-| TPR@FPR=5% | 0.0933 |
-| ECE | 0.1488 |
-| Brier | 0.2459 |
-
-The current best external `all_samples` result is the strict Text-Koopman
-loss-update combined-feature row:
-
-`leave_out_ghostbuster + full_plus_transition_plus_strict_koopman + recon_only/rank16`
-
-| Metric | Value |
-|---|---:|
-| AUROC | 0.7120 |
-| AUPRC | 0.6860 |
-| F1 | 0.6789 |
-| TPR@FPR=1% | 0.0133 |
-| TPR@FPR=5% | 0.1400 |
-| ECE | 0.1796 |
-| Brier | 0.2569 |
-
-The strongest conclusion is not that Deep DMD is useless. Deep DMD has
-public-source transfer signal, but it does not solve the stronger `all_samples`
-shift. The strict Text-Koopman loss update produces the current best external
-row, while transition-state profiling remains the previous practical reference
-baseline.
-
-Start here for a compact research summary:
-
-- [docs/METHOD_FEATURES_AND_RESULTS.md](docs/METHOD_FEATURES_AND_RESULTS.md)
-- [docs/RESULTS_SUMMARY.md](docs/RESULTS_SUMMARY.md)
-- [docs/TRANSITION_STATE_PROFILING_SUMMARY.md](docs/TRANSITION_STATE_PROFILING_SUMMARY.md)
-- [results_curated/tables/](results_curated/tables/)
-- [results_presentation/figures_clean/](results_presentation/figures_clean/)
-
-MS-ME-Detect is a Python project for AI-generated and AI-polished text detection, with a current focus on Chinese and Chinese-English mixed text. It is not an LLM-as-judge detector. Instead, it extracts handcrafted and local language-model features, then trains conventional classifiers for the final decision.
-
-This repository does not include private datasets, model weights, Hugging Face or ModelScope caches, training outputs, or logs. You must prepare your own dataset and local model files before running the full pipeline.
-
-## Current Released Features
-
-The current released feature groups are:
-
-- Statistical features
-- Structural features
-- Rule-based perturbation features
-- Qwen2.5-1.5B probability features
-- Qwen2.5-7B/14B probability summary features for full experiments
-- scale-response profiling across Qwen scales
-- transition-state profiling from token-level loss trajectories
-- DMD-lite and Deep DMD experimental modules
-
-The codebase also includes optional multi-scale probability, scale-response, binoculars-style modules, Koopman-inspired DMD-lite features, and a Deep DMD encoder for controlled experiments.
-
-## Method Overview
-
-- Statistical burstiness: sentence length variation, punctuation ratios, type-token ratio, repetition, compression, and Zipf deviation.
-- Multi-scale Qwen2.5 probability features: Base models compute PPL and token-level negative log-likelihood distributions.
-- Multi-scale probability response features: slopes, gaps, ratios, response areas, and curvature across Qwen2.5 model scales.
-- Transition-state profiling: token-level loss sequences are mapped into abstract loss states with train-only bins; the model uses transition matrices, entropy, up/down/self transitions, burst density, run lengths, and spectral gap features.
-- DMD-lite spectral profiling: per-text hand-built observables from loss trajectories are used to estimate a small linear dynamics operator and spectral summaries.
-- Deep DMD encoder: learnable lifting `g_theta(x_t)` and Koopman operator `K` trained with multi-step prediction, reconstruction, classification, and stability losses. This is implemented and evaluated, but not selected as the main method.
-- Binoculars-inspired contrast: simplified dual-model contrast between observer and performer Base models. This is inspired by the Binoculars idea, not a full reproduction.
-- Structural patterns: template phrase ratios, N-gram repetition, POS ratios, and information-density signals.
-- Optional perturbation stability: rule-based perturbations by default, with optional Qwen2.5 Instruct rewriting.
-
-Final outputs include `Yes/No`, AI probability, risk level, and interpretable evidence. Treat the result as a risk assessment, not proof.
-
-## Model Choices
-
-Probability and PPL features use Qwen2.5 Base models:
-
-- `Qwen/Qwen2.5-1.5B`
-- `Qwen/Qwen2.5-7B`
-- `Qwen/Qwen2.5-14B`
-- optional `Qwen/Qwen2.5-32B` with `--include_32b`
-
-Instruct models are only used for optional perturbation generation or natural-language explanation:
-
-- `Qwen/Qwen2.5-14B-Instruct`
-- optional `Qwen/Qwen2.5-32B-Instruct`
-
-All model names are configurable in `src/config.py` and overridable from the CLI.
-
-## Preparing Qwen2.5 Models
-
-The demo mode does not download or load large Qwen models. It only tests the pipeline. Probability and scale-response features require local Qwen2.5 Base model weights.
-
-Install download tools:
+To create a lightweight audit sketch for Figure 3:
 
 ```bash
-pip install -U huggingface_hub transformers accelerate safetensors
+python paper_release/scripts/make_paper_figures_from_source_data.py
 ```
 
-Set cache and model paths:
+## Code Map
 
-```bash
-source scripts/env.sh
-```
+- [src/](src/): feature extraction, training, prediction, and exploratory dynamics modules
+- [scripts/](scripts/): experiment orchestration, feature construction, evaluation, and figure helpers
+- [docs/](docs/): method notes, historical experiment notes, and current final-model specs
+- [paper_release/](paper_release/): manuscript release snapshot with small auditable files
 
-Download the minimum Base models for probability features:
+## Use Caveat
 
-```bash
-python scripts/download_models.py --models small medium large --backend hf
-```
-
-Equivalent through `main.py`:
-
-```bash
-python main.py --mode download_models --models small medium large
-```
-
-If Hugging Face is not accessible, use ModelScope:
-
-```bash
-pip install -U modelscope
-python scripts/download_models.py --models small medium large --backend modelscope
-```
-
-Check local model readiness:
-
-```bash
-python scripts/check_models.py --models small medium large
-python main.py --mode check_models --models small medium large
-```
-
-### Running long downloads with tmux
-
-Use tmux for long model downloads and monitoring so jobs survive client interruptions.
-
-```bash
-tmux ls
-tmux attach -t qwen_download
-# Detach from tmux: Ctrl-b then d
-
-bash scripts/tmux_monitor_models.sh
-bash scripts/tmux_download_models.sh qwen_download medium large
-```
-
-Do not start duplicate downloads if `ps` shows an active `modelscope` or `hf download` process for the same model.
-
-Run two-A100 probability extraction from local paths:
-
-```bash
-bash scripts/run_probability_features.sh
-```
-
-Sequential probability extraction through `main.py`:
-
-```bash
-python main.py --mode probability --models small medium large --dtype bfloat16
-```
-
-Optional 32B:
-
-```bash
-python scripts/download_models.py --models xl --backend hf
-```
-
-```bash
-CUDA_VISIBLE_DEVICES=1 python src/feature_probability.py \
-  --model_key xl \
-  --input data/dataset.csv \
-  --output features/probability_qwen25_32b.csv \
-  --dtype bfloat16 \
-  --max_length 1024 \
-  --local_files_only
-```
-
-Generate scale-response features after probability files exist:
-
-```bash
-python src/feature_scale_response.py \
-  --feature_dir features \
-  --output features/scale_response_features.csv
-```
-
-Merge and train:
-
-```bash
-python src/merge_features.py
-python src/train_eval.py
-```
-
-## Multi-Scale Probability Response Features
-
-This module models how the same text's perplexity and token-level loss statistics change as the model scale increases from Qwen2.5-1.5B to 7B, 14B, and optionally 32B. The resulting slopes, gaps, ratios, response areas, and curvature features are used as explainable evidence for detecting AI-generated and AI-polished texts.
-
-It consumes existing probability feature files:
-
-- `features/probability_qwen25_1_5b.csv`
-- `features/probability_qwen25_7b.csv`
-- `features/probability_qwen25_14b.csv`
-- optional `features/probability_qwen25_32b.csv`
-
-Run it independently:
-
-```bash
-python src/feature_scale_response.py \
-  --feature_dir features \
-  --output features/scale_response_features.csv
-```
-
-Then merge and train:
-
-```bash
-python src/merge_features.py
-python src/train_eval.py
-```
-
-## Installation
-
-```bash
-cd MS-ME-Detect
-pip install -r requirements.txt
-```
-
-`xgboost`, `sentence-transformers`, and `bitsandbytes` are optional in code. If unavailable, the relevant path is skipped gracefully.
-
-## Data Preparation
-
-Expected file: `data/dataset.csv`
-
-Columns:
-
-- `id`: unique text id
-- `text`: input text
-- `label`: `1` for AI-generated or AI-polished, `0` for human-written
-- `type`: Human / AI-generated / AI-polished
-- `source`: source model or source name
-- `topic`: topic label
-
-Data files are not shipped with this repository. Prepare your own CSV in the format above. If `data/dataset.csv` is missing, `python main.py --mode demo` creates a very small demo dataset for smoke testing only.
-
-## Training
-
-For a lightweight end-to-end training run without large Qwen model weights:
-
-```bash
-python main.py --mode demo
-```
-
-For a full feature merge and training pass after your feature CSV files are ready:
-
-```bash
-python src/merge_features.py
-python src/train_eval.py
-```
-
-The trained fusion model and evaluation artifacts are written to `results/`.
-
-## Testing and Evaluation
-
-This repository does not currently ship a standalone `tests/` suite. The practical smoke-test and evaluation entry points are:
-
-```bash
-python main.py --mode demo
-```
-
-```bash
-python main.py --mode check_models --models small medium large
-```
-
-```bash
-python src/train_eval.py --input features/all_features.csv --result_dir results
-```
-
-Use `demo` for a CPU smoke test, `check_models` to validate local Qwen availability, and `train_eval.py` to evaluate a merged feature matrix.
-
-## Running Individual Feature Groups
-
-You can generate one feature family at a time before merging them:
-
-Statistical features:
-
-```bash
-python src/feature_burstiness.py --input data/dataset.csv --output features/burstiness_features.csv
-```
-
-Structural features:
-
-```bash
-python src/feature_structure.py --input data/dataset.csv --output features/structure_features.csv
-```
-
-Rule-based perturbation features:
-
-```bash
-python src/feature_perturbation.py --input data/dataset.csv --output features/perturbation_features.csv --mode rule
-```
-
-Qwen2.5-1.5B probability features:
-
-```bash
-python src/feature_probability.py --model_key small --input data/dataset.csv --output features/probability_qwen25_1_5b.csv --local_files_only
-```
-
-## Current Feature-Group Ablation
-
-Run ablations on the feature files currently available in `features/all_features.csv`. This utility compares burstiness, structure, perturbation, Qwen2.5-1.5B probability features, selected combinations, and all current numeric features with the same stratified train/test split.
-
-It does not require Qwen2.5-7B, Qwen2.5-14B, or scale-response features.
-
-```bash
-python src/group_ablation_current.py
-python main.py --mode current_ablation
-```
-
-Outputs:
-
-- `results/current_group_ablation_results.csv`
-- `results/current_group_ablation_report.txt`
-
-## Fusion Feature Model
-
-The default fusion workflow is:
-
-1. Generate one or more feature CSV files under `features/`
-2. Merge them into `features/all_features.csv`
-3. Train and evaluate the downstream classifier
-
-Commands:
-
-```bash
-python src/merge_features.py
-python src/train_eval.py
-```
-
-## Full Pipeline
-
-Default full mode attempts Qwen2.5 1.5B, 7B, and 14B Base probability extraction, Binoculars-style features, merge, and training:
-
-```bash
-python main.py --mode all --dtype bfloat16 --max_length 1024
-```
-
-High-resource local Qwen pipeline using downloaded model keys:
-
-```bash
-python main.py --mode full_qwen \
-  --models small medium large \
-  --dtype bfloat16 \
-  --max_length 1024
-```
-
-Include 32B only when explicitly requested:
-
-```bash
-python main.py --mode full_qwen --models small medium large xl --dtype bfloat16
-```
-
-Run only scale-response extraction from existing probability files:
-
-```bash
-python main.py --mode scale_response
-```
-
-Include 32B:
-
-```bash
-python main.py --mode all --include_32b --dtype bfloat16 --device_map auto
-```
-
-If a model cannot be loaded, the module writes NaN probability features with warnings and continues.
-
-## Two A100 Probability Extraction
-
-Recommended mode: independent jobs, one model per GPU.
-
-```bash
-CUDA_VISIBLE_DEVICES=0 python src/feature_probability.py \
-  --model_key small \
-  --input data/dataset.csv \
-  --output features/probability_qwen25_1_5b.csv \
-  --dtype bfloat16 \
-  --max_length 1024 \
-  --local_files_only
-```
-
-```bash
-CUDA_VISIBLE_DEVICES=1 python src/feature_probability.py \
-  --model_key medium \
-  --input data/dataset.csv \
-  --output features/probability_qwen25_7b.csv \
-  --dtype bfloat16 \
-  --max_length 1024 \
-  --local_files_only
-```
-
-Large model automatic device mapping:
-
-```bash
-python src/feature_probability.py \
-  --model Qwen/Qwen2.5-32B \
-  --input data/dataset.csv \
-  --output features/probability_qwen25_32b.csv \
-  --dtype bfloat16 \
-  --device_map auto \
-  --max_length 1024
-```
-
-Optional 4-bit:
-
-```bash
-python src/feature_probability.py --model Qwen/Qwen2.5-32B --device_map auto --load_4bit
-```
-
-## Training Outputs
-
-Typical outputs written under `results/`:
-
-- `results/metrics.csv`
-- `results/ablation_results.csv`
-- `results/classification_report.txt`
-- `results/confusion_matrix.png`
-- `results/feature_importance.csv`
-- `results/feature_importance.png`
-- `results/predictions.csv`
-- `results/best_model.pkl`
-- `results/feature_columns.json`
-
-## Prediction
-
-Lightweight prediction:
-
-```bash
-python main.py --mode predict --text "待检测文本"
-```
-
-Prediction with local LM features:
-
-```bash
-python main.py --mode predict --text "待检测文本" \
-  --use_lm_features \
-  --predict_model Qwen/Qwen2.5-1.5B \
-  --dtype bfloat16
-```
-
-Direct script:
-
-```bash
-python src/predict.py --text "综上所述，该方法具有重要意义。"
-```
-
-## Output Interpretation
-
-- `prediction`: `Yes` means likely AI-generated or AI-polished; `No` means likely human-written.
-- `ai_probability`: classifier probability for label `1`.
-- `risk_level`: Low `<0.35`, Medium `0.35-0.70`, High `>=0.70`.
-- `top_evidence`: simple evidence derived from feature values and feature importance.
-
-## Limitations
-
-- AI text detection is not definitive.
-- Human formal writing may be misclassified as AI-like.
-- AI-polished text is harder than pure AI-generated text.
-- Model probabilities depend on the local model family and domain match.
-- Outputs should be interpreted as risk assessment, not absolute proof.
+MS-ME-Detect produces probabilistic risk scores, not proof of authorship. It should not be used as the sole basis for punishment or other high-stakes action. See [paper_release/ethics/INTENDED_USE_AND_LIMITATIONS.md](paper_release/ethics/INTENDED_USE_AND_LIMITATIONS.md).

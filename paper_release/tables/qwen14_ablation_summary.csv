@@ -1,0 +1,8 @@
+variant,auroc,auprc,f1,tpr_at_fpr_le_5,notes
+no_segment_base,0.899289,0.918752,0.784615,0.680000,"source: Figure/figure4/figure4_segment_ablation_table.csv; previous fused base before Qwen14 segment"
+qwen14_probe,0.690356,0.708130,0.660494,0.206667,"source: standalone selected Qwen14 segment probe; not final"
+qwen14_candidate,0.772267,0.773228,0.649446,0.300000,"source: standalone Qwen14 sgd_a1e4 candidate used in final fusion"
+final_fusion,0.907822,0.926497,0.838926,0.713333,"source: validation-selected Qwen14 segment fusion; final paper model"
+scalar_only,TODO,TODO,TODO,TODO,"source_missing; explicit scalar-only probe metrics unavailable; individual scalar AUROCs exist in Figure/figure4/figure4_scalar_geometry_effects.csv"
+pooled_representation,TODO,TODO,TODO,TODO,"source_missing; first-token-only, mean-only, and whole-pooling ablation metrics unavailable"
+projection_features,TODO,TODO,TODO,TODO,"source_missing; random-projection on/off ablation metrics unavailable"

@@ -1,0 +1,30 @@
+Environment manifest for the paper-release snapshot
+
+Known from local run manifests:
+- Python: 3.11.13
+- Platform: Linux-5.4.250-2-velinux1u1-amd64-x86_64-with-glibc2.35
+- Segment extraction device: cuda
+- Segment extraction dtype: bfloat16
+
+Project requirement names available in requirements.txt:
+- pandas
+- numpy
+- scikit-learn
+- matplotlib
+- seaborn
+- jieba
+- tqdm
+- joblib
+- transformers
+- torch
+- scipy
+- xgboost
+- sentence-transformers
+- accelerate
+- bitsandbytes
+
+Exact package versions:
+TODO_generate_from_local_environment with `python -m pip freeze` in the environment used for the final run.
+
+CUDA/GPU notes:
+Qwen2.5-14B segment features were generated locally with CUDA and bfloat16. Exact GPU model and driver versions were not found in the small committed manifests.

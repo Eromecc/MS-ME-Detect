@@ -39,12 +39,23 @@ results/
 runs/
 wandb/
 logs/
+cache/
+.cache/
+artifacts/
+Figure/
+figures/
+features/
+!features/
+features/*
 features/*.csv
 features/**/*.csv
+features/**/all_features.csv
+**/all_features.csv
 !features/deferred/
 !features/deferred/*.csv
 features_by_dataset/
 features_external/
+features_external_reproduction*/
 features_source_matrix/
 features_token_loss/
 features_hidden_states/
@@ -54,6 +65,12 @@ features_koopman/
 features_deep_dmd/
 features_text_koopman/
 features_text_koopman_strict_math/
+features_embedding*/
+features_embedding_*/
+features_loss*/
+features_loss_*/
+features_cross*/
+features_cross_*/
 
 # Model weights, checkpoints, and caches
 models/
@@ -62,11 +79,12 @@ checkpoints_*/
 checkpoints*/
 hf_cache/
 modelscope_cache/
-.cache/
 *.joblib
+*.pkl
 *.jsonl.gz
 *.parquet
 *.npz
+*.npy
 *.pt
 *.pth
 *.ckpt
@@ -85,6 +103,8 @@ results_optimized/
 results_source_matrix/
 results_targeted/
 results_transition/
+results_incremental*/
+results_embedding_segment*/
 results_text_koopman/
 results_text_koopman_strict_math/
 !results_text_koopman_strict_math/
@@ -117,3 +137,19 @@ project_inventory/
 
 # Keep model artifacts out of nested result directories.
 results*/**/*.joblib
+results*/**/*.pkl
+results*/**/*.pt
+results*/**/*.pth
+results*/**/*.ckpt
+results*/**/*.safetensors
+results*/**/*.npz
+results*/**/*.npy
+
+# Paper release files are intentionally small and should stay commit-ready.
+!paper_release/
+!paper_release/**
+# Local raw reproduction datasets and generated document exports
+ai_text_detector_data_reproduction/
+*.pptx
+*.docx
+docs/*embedded.html

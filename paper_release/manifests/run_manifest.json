@@ -1,0 +1,41 @@
+{
+  "final_model_name": "ms_me_detect_qwen14_segment_fusion",
+  "model_status": "final_paper_snapshot",
+  "final_result_metrics": {
+    "auroc": 0.907822,
+    "auprc": 0.926497,
+    "tpr_at_fpr_le_5_percent": 0.713333,
+    "f1_at_0_5": 0.838926,
+    "accuracy_at_0_5": 0.84,
+    "precision_at_0_5": 0.844595,
+    "recall_at_0_5": 0.833333,
+    "brier": 0.131683,
+    "ece": 0.113796
+  },
+  "selection_split": "fakespot_like validation only",
+  "external_split": "all_samples evaluation only",
+  "script_entrypoints": {
+    "segment_feature_build": "scripts/build_embedding_segment_features.py",
+    "segment_probe_train": "scripts/train_clean_probe_from_features.py",
+    "fusion": "scripts/incremental_blend_with_probe.py",
+    "audit_metrics": "paper_release/scripts/recompute_external_metrics.py",
+    "audit_figures": "paper_release/scripts/make_paper_figures_from_source_data.py"
+  },
+  "final_artifacts_used_locally": {
+    "final_predictions_raw_local_only": "artifacts/results/results_incremental_embedding_best_plus_embedding_segment_qwen14_v1/val_composite__all_samples_predictions.csv",
+    "base_predictions_raw_local_only": "results_incremental_current_best_plus_embedding_pool_raw_plateau_v1/val_low_fpr__all_samples_predictions.csv",
+    "segment_predictions_raw_local_only": "artifacts/results/results_embedding_segment_qwen14_probe_clean_v1/predictions/embedding_segment_qwen14_probe__sgd_a1e4__all_samples.csv"
+  },
+  "random_seeds": {
+    "segment_projection_seeds": [20260525, 20260526, 20260527],
+    "selected_sgd_candidate_random_state": 7,
+    "earlier_final_matrix_seed": 42
+  },
+  "fusion": {
+    "score_inputs": ["score_no_segment_base", "score_qwen14_segment"],
+    "transform": "rank",
+    "alpha": 0.108,
+    "selected_candidate": "embedding_segment_qwen14_probe__sgd_a1e4__rank",
+    "selection_objective": "0.45 * AUROC + 0.35 * AUPRC + 0.20 * TPR@FPR<=5%"
+  }
+}

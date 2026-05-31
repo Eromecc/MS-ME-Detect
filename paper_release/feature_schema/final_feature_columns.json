@@ -1,0 +1,18 @@
+{
+  "model_level": "top_level_score_fusion",
+  "exact_final_score_inputs": [
+    "rank01(score_no_segment_base)",
+    "rank01(score_qwen14_segment)"
+  ],
+  "fusion_formula": "score_final = clip((1 - alpha) * rank01(score_no_segment_base) + alpha * rank01(score_qwen14_segment), 0, 1)",
+  "alpha": 0.108,
+  "selected_candidate": "embedding_segment_qwen14_probe__sgd_a1e4__rank",
+  "lower_level_feature_counts": {
+    "qwen14_segment_candidate_probe": 776,
+    "embedding_pool_branch_probe_inside_no_segment_base": 518,
+    "earlier_external_reproduction_feature_matrix": 720,
+    "cross_dynamics_with72_feature_matrix": 475
+  },
+  "exact_feature_matrix_released": false,
+  "notes": "The final released detector is a two-score fusion. Exact lower-level full feature matrix columns are not released because the matrices are heavy local artifacts and may derive from raw text/model caches."
+}

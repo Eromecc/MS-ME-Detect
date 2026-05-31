@@ -1,0 +1,12 @@
+rank,model,roc_auc,f1
+1,MS-ME-Detect final,0.908,0.839
+2,DeBERTa-Ceiling,0.847,0.635
+3,Fakespot-v1,0.842,0.779
+4,AntiAdversarial,0.795,0.743
+5,ChatGPT-Classic,0.568,0.213
+6,Ghostbuster,0.560,0.627
+7,OpenAI-Origin,0.551,0.634
+8,DetectGPT,0.551,0.138
+9,LM-Perplexity,0.510,0.627
+10,Binoculars,0.509,0.606
+11,Fast-DetectGPT,0.476,0.520
